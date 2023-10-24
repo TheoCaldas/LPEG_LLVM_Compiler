@@ -1,6 +1,7 @@
 fun main(): int{
-    var x = 1.0
-    x = 1
-    @ x
+    var y : float = 1.5
+    @ y
+    var y: int = 3
+    @ y
     ret 0
 }

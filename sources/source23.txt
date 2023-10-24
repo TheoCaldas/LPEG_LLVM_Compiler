@@ -1,0 +1,6 @@
+fun main(): int{
+    var x : float
+    x = 1.0
+    @ x
+    ret 0
+}

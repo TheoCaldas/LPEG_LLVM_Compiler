@@ -294,14 +294,27 @@ function Compiler:codeStat_print(st)
 end
 
 function Compiler:codeStat_daVAR(st)
-  -- TO DO: Check explicit type
   local c = self:codeExp(st.e)
   local temp = self:newTemp()
-
-  -- implicit type
   self:createVar(st.id, c.type, temp)
-  shared.fw("  %s = alloca %s\n  store %s %s, %s* %s\n",
-   temp, maptype[c.type], maptype[c.type], c.result, maptype[c.type], temp)
+
+  if isEmpty(st.optType) then
+    -- implicit type
+    shared.fw("  %s = alloca %s\n  store %s %s, %s* %s\n",
+    temp, maptype[c.type], maptype[c.type], c.result, maptype[c.type], temp)
+  else
+    -- explicit type
+    local map = maptype[st.optType]
+    if st.optType == types.void then
+      errorMsg("Cannot alloc a void variable")
+    elseif map == nil then
+      errorMsg(st.optType .. " is not a type")
+    elseif c.type ~= st.optType then
+      errorMsg("Cannot store " .. c.type .. " value in a " .. st.optType .. " variable")
+    end
+    shared.fw("  %s = alloca %s\n  store %s %s, %s* %s\n",
+    temp, map, map, c.result, map, temp)
+  end
 end
 
 function Compiler:codeStat_aVAR(st)
@@ -314,10 +327,15 @@ function Compiler:codeStat_aVAR(st)
 end
 
 function Compiler:codeStat_dVAR(st)
-  -- TO DO: Check explicit type
   local temp = self:newTemp()
-  self:createVar(st.id, temp)
-  shared.fw("  %s = alloca i32\n", temp)
+  self:createVar(st.id, st.type, temp)
+  local map = maptype[st.type]
+  if st.type == types.void then
+    errorMsg("Cannot alloc a void variable")
+  elseif map == nil then
+    errorMsg(st.type .. " is not a type")
+  end
+  shared.fw("  %s = alloca %s\n", temp, map)
 end
 
 function Compiler:codeStat(st)

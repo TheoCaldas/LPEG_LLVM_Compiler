@@ -1,2 +1,1 @@
-SEMANTIC ERROR
-Cannot store int value in a float variable
+COMPILATION SUCCEED

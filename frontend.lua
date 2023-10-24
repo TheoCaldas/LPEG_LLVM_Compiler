@@ -42,7 +42,7 @@ local function notRW (s, i, id)
 end
 
 local function I (msg)
-  return lpeg.P(function () log:write(msg); return true end)
+  return lpeg.P(function () shared.log:write(msg .. "\n"); return true end)
 end
 
 local function syntaxError(input)
@@ -112,8 +112,8 @@ local syntax = lpeg.P{"defs";
   stat = 
     block +
     (AT * exp / node("print", "e")) +
-    (rw"var" * lpeg.Cmt(id, notRW) * EQ * exp / node("daVAR", "id", "e")) +
-    (rw"var" * lpeg.Cmt(id, notRW) / node("dVAR", "id")) + 
+    (rw"var" * lpeg.Cmt(id, notRW) * opt(CL * id) * EQ * exp / node("daVAR", "id", "optType", "e")) +
+    (rw"var" * lpeg.Cmt(id, notRW) * CL * id / node("dVAR", "id", "type")) + 
     (id * EQ * exp / node("aVAR", "id", "e")) +
     (rw"if" * exp * block * (rw"else" * block)^-1 / node("if", "cond", "th", "el")) + 
     (rw"while" * exp * block / node("while", "cond", "body")) +
