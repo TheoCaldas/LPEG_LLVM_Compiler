@@ -14,6 +14,15 @@ local BAOmap = {
   ["/"] = "div",
 }
 
+local BCOmap = {
+  [">="] = "ge",
+  ["<="] = "le",
+  [">"] = "gt",
+  ["<"] = "lt",
+  ["=="] = "eq",
+  ["!="] = "ne",
+}
+
 -- MARK: Auxiliar Functions
 local function errorMsg(msg)
   shared.log:write("SEMANTIC ERROR\n" .. msg)
@@ -37,16 +46,7 @@ declare dso_local i32 @printf(i8*, ...)
 -- translates syntatic tree into LLVM code
 local Compiler = {
   tempCount = 0, variables = {}, functions = {},
-  currentFunc = "",
-  BCOmap = {
-    [">="] = "sge",
-    ["<="] = "sle",
-    [">"] = "sgt",
-    ["<"] = "slt",
-    ["=="] = "eq",
-    ["!="] = "ne",
-  },
-  
+  currentFunc = "",  
 }
 
 -- START: Vars
@@ -170,18 +170,30 @@ function Compiler:codeExp_BAO (exp)
     shared.fw("  %s = %s i32 %s, %s\n", temp, inst, coded1.result, coded2.result)
   elseif coded1.type == types.float then
     shared.fw("  %s = f%s double %s, %s\n", temp, BAOmap[exp.op], coded1.result, coded2.result)
+  else
+    errorMsg("Binary operation not defined for " .. coded.type)
   end
   return self:result_type(temp, coded1.type)
 end
 
 function Compiler:codeExp_BCO (exp)
-  local rExp1 = self:codeExp(exp.e1)
-  local rExp2 = self:codeExp(exp.e2)
-  local temp1 = self:newTemp()
-  local temp2 = self:newTemp()
-  shared.fw("  %s = icmp %s i32 %s, %s\n  %s = zext i1 %s to i32\n",
-  temp1, self.BCOmap[exp.op], rExp1, rExp2, temp2, temp1)
-  return temp2
+  local c1 = self:codeExp(exp.e1)
+  local c2 = self:codeExp(exp.e2)
+  local t1 = self:newTemp()
+  local t2 = self:newTemp()
+
+  if c1.type ~= c2.type then
+    errorMsg(c1.type .. " " .. exp.op .. " " .. c2.type .. " is not defined")
+  elseif c1.type == types.int then
+    local inst = (exp.op == "==" or exp.op == "!=") and BCOmap[exp.op] or "s" .. BCOmap[exp.op]
+    shared.fw("  %s = icmp %s i32 %s, %s\n  %s = zext i1 %s to i32\n", t1, inst, c1.result, c2.result, t2, t1)
+  elseif c1.type == types.float then
+    local inst = (exp.op == "!=") and "u" .. BCOmap[exp.op] or "o" .. BCOmap[exp.op]
+    shared.fw("  %s = fcmp %s double %s, %s\n  %s = zext i1 %s to i32\n", t1, inst, c1.result, c2.result, t2, t1)
+  else
+    errorMsg("Comparative operation not defined for " .. coded.type)
+  end
+  return self:result_type(t2, types.int)
 end
 
 function Compiler:codeExp (exp)

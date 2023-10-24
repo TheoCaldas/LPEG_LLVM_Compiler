@@ -1,12 +1,8 @@
 #include <stdio.h>
 
-double add(double a, double b){return a + b;}
-double sub(double a, double b){return a - b;}
-double mul(double a, double b){return a * b;}
-double div(double a, double b){return a / b;}
-
-void p(double a){printf("%f\n", a);}
-int main(){
-    p(3.3);
-    return 0;
-}
+double f1(double a, double b){return a >= b;}
+double f2(double a, double b){return a <= b;}
+double f3(double a, double b){return a > b;}
+double f4(double a, double b){return a < b;}
+double f5(double a, double b){return a == b;}
+double f6(double a, double b){return a != b;}
