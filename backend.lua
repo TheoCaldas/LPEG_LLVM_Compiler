@@ -7,6 +7,13 @@ local types = {
   float = "float",
 }
 
+local BAOmap = {
+  ["+"] = "add",
+  ["-"] = "sub",
+  ["*"] = "mul",
+  ["/"] = "div",
+}
+
 -- MARK: Auxiliar Functions
 local function errorMsg(msg)
   shared.log:write("SEMANTIC ERROR\n" .. msg)
@@ -31,12 +38,6 @@ declare dso_local i32 @printf(i8*, ...)
 local Compiler = {
   tempCount = 0, variables = {}, functions = {},
   currentFunc = "",
-  BAOmap = {
-    ["+"] = "add",
-    ["-"] = "sub",
-    ["*"] = "mul",
-    ["/"] = "sdiv",
-  },
   BCOmap = {
     [">="] = "sge",
     ["<="] = "sle",
@@ -159,11 +160,18 @@ function Compiler:codeExp_UAO (exp)
 end
 
 function Compiler:codeExp_BAO (exp)
-  local rExp1 = self:codeExp(exp.e1)
-  local rExp2 = self:codeExp(exp.e2)
+  local coded1 = self:codeExp(exp.e1)
+  local coded2 = self:codeExp(exp.e2)
   local temp = self:newTemp()
-  shared.fw("  %s = %s i32 %s, %s\n", temp, self.BAOmap[exp.op], rExp1, rExp2)
-  return temp
+  if coded1.type ~= coded2.type then
+    errorMsg(coded1.type .. " " .. exp.op .. " " .. coded2.type .. " is not defined")
+  elseif coded1.type == types.int then
+    local inst = exp.op == "/" and "s" .. BAOmap[exp.op] or BAOmap[exp.op]
+    shared.fw("  %s = %s i32 %s, %s\n", temp, inst, coded1.result, coded2.result)
+  elseif coded1.type == types.float then
+    shared.fw("  %s = f%s double %s, %s\n", temp, BAOmap[exp.op], coded1.result, coded2.result)
+  end
+  return self:result_type(temp, coded1.type)
 end
 
 function Compiler:codeExp_BCO (exp)
