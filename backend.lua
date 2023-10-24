@@ -98,12 +98,15 @@ function Compiler:codeJmp (label)
 end
 
 function Compiler:codeCond (exp, Ltrue, Lfalse)
-  local reg = self:codeExp(exp)
+  local c = self:codeExp(exp)
   local aux = self:newTemp()
+  if c.type ~= types.int then
+    errorMsg("Not a comparison")
+  end
   shared.fw([[
   %s = icmp ne i32 %s, 0
   br i1 %s, label %%%s, label %%%s
-]], aux, reg, aux, Ltrue, Lfalse)
+]], aux, c.result, aux, Ltrue, Lfalse)
 end
 -- END: Conditional
 
