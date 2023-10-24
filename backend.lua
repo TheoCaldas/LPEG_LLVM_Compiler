@@ -1,5 +1,12 @@
 local shared = require "shared"
 
+-- MARK: Global Variables
+local types = {
+  void = "void",
+  int = "int",
+  float = "float",
+}
+
 -- MARK: Auxiliar Functions
 local function errorMsg(msg)
   shared.log:write("SEMANTIC ERROR\n" .. msg)
@@ -12,14 +19,10 @@ end
 
 -- MARK: LLVM Header
 local premable = [[
-@.str = private unnamed_addr constant [4 x i8] c"%d\0A\00"
+@.strI = private unnamed_addr constant [4 x i8] c"%d\0A\00"
+@.strD = private unnamed_addr constant [4 x i8] c"%g\0A\00"
 
 declare dso_local i32 @printf(i8*, ...)
-
-define internal void @printI(i32 %x) {
-  %y = call i32 (i8*, ...) @printf(i8* getelementptr ([4 x i8], [4 x i8]* @.str, i64 0, i64 0), i32 %x)
-  ret void
-}
 
 ]]
 
@@ -41,7 +44,8 @@ local Compiler = {
     ["<"] = "slt",
     ["=="] = "eq",
     ["!="] = "ne",
-  }
+  },
+  
 }
 
 -- START: Vars
@@ -123,11 +127,11 @@ end
 
 -- START: Expression
 function Compiler:codeExp_INT(exp)
-  return string.format("%d", exp.num) 
+  return {result = string.format("%d", exp.num), type = types.int}
 end
 
 function Compiler:codeExp_FLOAT(exp)
-  return string.format("%f", exp.num) 
+  return {result = string.format("%f", exp.num), type = types.float}
 end
 
 function Compiler:codeExp_uVAR (exp)
@@ -237,13 +241,20 @@ function Compiler:codeStat_return(st)
       errorMsg(currentType .. " return expected")
     end
     local rExp = self:codeExp(st.e)
-    shared.fw("  ret i32 %s\n", rExp)
+    shared.fw("  ret i32 %s\n", rExp.result)
   end
 end
 
 function Compiler:codeStat_print(st)
-  local rExp = self:codeExp(st.e)
-  shared.fw("  call void @printI(i32 %s)\n", rExp)
+  local coded = self:codeExp(st.e)
+  if coded.type == types.int then
+    shared.fw("  call i32 (i8*, ...) @printf(i8* getelementptr ([4 x i8], [4 x i8]* @.strI, i64 0, i64 0), i32 %s)\n", coded.result)
+  elseif coded.type == types.float then
+    shared.fw("  call i32 (i8*, ...) @printf(i8* getelementptr ([4 x i8], [4 x i8]* @.strD, i64 0, i64 0), double %s)\n", coded.result)
+  else
+    errorMsg("cannot print " .. coded.type)
+  end
+  
 end
 
 function Compiler:codeStat_daVAR(st)
