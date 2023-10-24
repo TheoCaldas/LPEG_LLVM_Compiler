@@ -75,6 +75,10 @@ function Compiler:createVar (id, temp)
   local vars = self.variables
   vars[#vars + 1] = {id = id, temp = temp}
 end
+
+function Compiler:result_type(result, _type)
+  return {result=result, type=_type}
+end
 -- END: Vars
 
 -- START: Conditional
@@ -127,11 +131,11 @@ end
 
 -- START: Expression
 function Compiler:codeExp_INT(exp)
-  return {result = string.format("%d", exp.num), type = types.int}
+  return self:result_type(string.format("%d", exp.num), types.int)
 end
 
 function Compiler:codeExp_FLOAT(exp)
-  return {result = string.format("%f", exp.num), type = types.float}
+  return self:result_type(string.format("%f", exp.num), types.float)
 end
 
 function Compiler:codeExp_uVAR (exp)
@@ -142,10 +146,16 @@ function Compiler:codeExp_uVAR (exp)
 end
 
 function Compiler:codeExp_UAO (exp)
-  local rExp = self:codeExp(exp.e)
+  local coded = self:codeExp(exp.e)
   local temp = self:newTemp()
-  shared.fw("  %s = sub i32 0, %s\n", temp, rExp)
-  return temp
+  if coded.type == types.int then 
+    shared.fw("  %s = sub i32 0, %s\n", temp, coded.result)
+  elseif coded.type == types.float then 
+    shared.fw("  %s = fneg double %s\n", temp, coded.result)
+  else
+    errorMsg("Unary operation not defined for " .. coded.type)
+  end
+  return self:result_type(temp, coded.type)
 end
 
 function Compiler:codeExp_BAO (exp)
@@ -247,14 +257,14 @@ end
 
 function Compiler:codeStat_print(st)
   local coded = self:codeExp(st.e)
+  local common = "  call i32 (i8*, ...) @printf(i8* getelementptr ([4 x i8], [4 x i8]* %s, i64 0, i64 0), %s %s)\n"
   if coded.type == types.int then
-    shared.fw("  call i32 (i8*, ...) @printf(i8* getelementptr ([4 x i8], [4 x i8]* @.strI, i64 0, i64 0), i32 %s)\n", coded.result)
+    shared.fw(common, "@.strI", "i32", coded.result)
   elseif coded.type == types.float then
-    shared.fw("  call i32 (i8*, ...) @printf(i8* getelementptr ([4 x i8], [4 x i8]* @.strD, i64 0, i64 0), double %s)\n", coded.result)
+    shared.fw(common, "@.strD", "double", coded.result)
   else
     errorMsg("cannot print " .. coded.type)
   end
-  
 end
 
 function Compiler:codeStat_daVAR(st)

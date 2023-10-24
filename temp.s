@@ -10,13 +10,14 @@ _main:                                  ; @main
 	stp	x29, x30, [sp, #16]             ; 16-byte Folded Spill
 	.cfi_offset w30, -8
 	.cfi_offset w29, -16
-	mov	x8, #-3689348814741910324
+	mov	x8, #57672
 Lloh0:
 	adrp	x0, l_.strD@PAGE
 Lloh1:
 	add	x0, x0, l_.strD@PAGEOFF
-	movk	x8, #52429
-	movk	x8, #16428, lsl #48
+	movk	x8, #5242, lsl #16
+	movk	x8, #18350, lsl #32
+	movk	x8, #49196, lsl #48
 	str	x8, [sp]
 	bl	_printf
 	ldp	x29, x30, [sp, #16]             ; 16-byte Folded Reload
