@@ -1,4 +1,5 @@
 fun main(): int{
-    @ 1.05 > 1
+    var x = 1
+    @ x
     ret 0
 }

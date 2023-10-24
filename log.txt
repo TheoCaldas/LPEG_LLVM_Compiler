@@ -1,2 +1,1 @@
-SEMANTIC ERROR
-float > int is not defined
+COMPILATION SUCCEED

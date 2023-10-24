@@ -23,6 +23,12 @@ local BCOmap = {
   ["!="] = "ne",
 }
 
+local maptype = {
+  [types.void] = "void",
+  [types.int] = "i32",
+  [types.float] = "double",
+}
+
 -- MARK: Auxiliar Functions
 local function errorMsg(msg)
   shared.log:write("SEMANTIC ERROR\n" .. msg)
@@ -66,15 +72,15 @@ function Compiler:findVar (id)
   local vars = self.variables
   for i = #vars, 1, -1 do
     if vars[i].id == id then
-      return vars[i].temp
+      return vars[i].temp, vars[i].type
     end
   end
   errorMsg("variable not found: " .. id)
 end
 
-function Compiler:createVar (id, temp)
+function Compiler:createVar (id, _type, temp)
   local vars = self.variables
-  vars[#vars + 1] = {id = id, temp = temp}
+  vars[#vars + 1] = {id = id, type = _type, temp = temp}
 end
 
 function Compiler:result_type(result, _type)
@@ -140,19 +146,19 @@ function Compiler:codeExp_FLOAT(exp)
 end
 
 function Compiler:codeExp_uVAR (exp)
-  local varRef = self:findVar(exp.id)	  
+  local varRef, varType = self:findVar(exp.id)	  
   local temp = self:newTemp()
-  shared.fw("  %s = load i32, i32* %s\n", temp, varRef)
-  return temp
+  shared.fw("  %s = load %s, %s* %s\n", temp, maptype[varType], maptype[varType], varRef)
+  return self:result_type(temp, varType)
 end
 
 function Compiler:codeExp_UAO (exp)
   local coded = self:codeExp(exp.e)
   local temp = self:newTemp()
   if coded.type == types.int then 
-    shared.fw("  %s = sub i32 0, %s\n", temp, coded.result)
+    shared.fw("  %s = sub %s 0, %s\n", temp, maptype[coded.type], coded.result)
   elseif coded.type == types.float then 
-    shared.fw("  %s = fneg double %s\n", temp, coded.result)
+    shared.fw("  %s = fneg %s %s\n", temp, maptype[coded.type], coded.result)
   else
     errorMsg("Unary operation not defined for " .. coded.type)
   end
@@ -279,19 +285,23 @@ function Compiler:codeStat_print(st)
   local coded = self:codeExp(st.e)
   local common = "  call i32 (i8*, ...) @printf(i8* getelementptr ([4 x i8], [4 x i8]* %s, i64 0, i64 0), %s %s)\n"
   if coded.type == types.int then
-    shared.fw(common, "@.strI", "i32", coded.result)
+    shared.fw(common, "@.strI", maptype[coded.type], coded.result)
   elseif coded.type == types.float then
-    shared.fw(common, "@.strD", "double", coded.result)
+    shared.fw(common, "@.strD", maptype[coded.type], coded.result)
   else
     errorMsg("cannot print " .. coded.type)
   end
 end
 
 function Compiler:codeStat_daVAR(st)
-  local rExp = self:codeExp(st.e)
+  -- TO DO: Check explicit type
+  local c = self:codeExp(st.e)
   local temp = self:newTemp()
-  self:createVar(st.id, temp)
-  shared.fw("  %s = alloca i32\n  store i32 %s, i32* %s\n", temp, rExp, temp)
+
+  -- implicit type
+  self:createVar(st.id, c.type, temp)
+  shared.fw("  %s = alloca %s\n  store %s %s, %s* %s\n",
+   temp, maptype[c.type], maptype[c.type], c.result, maptype[c.type], temp)
 end
 
 function Compiler:codeStat_aVAR(st)
@@ -301,6 +311,7 @@ function Compiler:codeStat_aVAR(st)
 end
 
 function Compiler:codeStat_dVAR(st)
+  -- TO DO: Check explicit type
   local temp = self:newTemp()
   self:createVar(st.id, temp)
   shared.fw("  %s = alloca i32\n", temp)
@@ -363,14 +374,14 @@ function Compiler:codeFunc_int(func)
 end
 
 function Compiler:codeFunc (func)
-  local fType = isEmpty(func.optType) and "void" or func.optType
+  local fType = isEmpty(func.optType) and types.void or func.optType
   local args = isEmpty(func.optArgs) and 0 or #func.optArgs
   self.functions[func.name] = {type = fType, argCount = args}
   self.currentFunc = func.name
 
-  if fType == "void" then
+  if fType == types.void then
     self:codeFunc_void(func)
-  elseif fType == "int" then
+  elseif fType == types.int then
     self:codeFunc_int(func)
   else
     errorMsg(fType .. " type does not exist")
