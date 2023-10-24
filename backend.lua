@@ -305,9 +305,12 @@ function Compiler:codeStat_daVAR(st)
 end
 
 function Compiler:codeStat_aVAR(st)
-  local rExp = self:codeExp(st.e)
-  local varRef = self:findVar(st.id)
-  shared.fw("  store i32 %s, i32* %s\n", rExp, varRef)
+  local c = self:codeExp(st.e)
+  local varRef, varType = self:findVar(st.id)
+  if c.type ~= varType then
+    errorMsg("Cannot store " .. c.type .. " value in a " .. varType .. " variable")
+  end
+  shared.fw("  store %s %s, %s* %s\n", maptype[c.type], c.result, maptype[c.type], varRef)
 end
 
 function Compiler:codeStat_dVAR(st)

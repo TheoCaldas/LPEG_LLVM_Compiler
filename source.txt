@@ -1,5 +1,6 @@
 fun main(): int{
-    var x = 1
+    var x = 1.0
+    x = 1
     @ x
     ret 0
 }
