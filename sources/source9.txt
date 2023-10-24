@@ -1,0 +1,15 @@
+fun foo(){
+    var x = 20;
+    return x + 30;
+}
+
+fun foo2(){
+    @ 50;
+    return 0;
+}
+
+fun main(){
+    @ foo();
+    foo2();
+    return 0;
+}

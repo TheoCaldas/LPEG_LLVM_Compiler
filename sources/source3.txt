@@ -1,0 +1,6 @@
+fun main(){
+    var z;
+    var y = 3;
+    z = 30;
+    @ z + y
+}

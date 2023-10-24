@@ -1,0 +1,7 @@
+fun main(){
+    var z = 3;
+    {
+        var z = 30;
+        @ z + z
+    }
+}

@@ -1,0 +1,15 @@
+fun abs(x): int{
+    if x < 0{
+        ret -x;
+    }else{
+        ret x;
+    };
+    ret 0;
+}
+
+fun main(): int{
+    @ abs(10);
+    @ abs(-3);
+    @ abs(0);
+    ret 0;
+}

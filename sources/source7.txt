@@ -1,0 +1,15 @@
+fun foo(){
+    @ 30;
+}
+
+fun main(){
+    var z = 3;
+    {
+        var z = 55;
+        if z >= 30 {
+            foo();
+        } else {
+            @ 0
+        } 
+    };
+}

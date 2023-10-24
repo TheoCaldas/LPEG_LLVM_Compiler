@@ -1,0 +1,10 @@
+fun foo(){
+    var x = 20;
+    return x + 30;
+}
+
+fun main(){
+    var x = foo() + foo();
+    @ x;
+    return 0;
+}

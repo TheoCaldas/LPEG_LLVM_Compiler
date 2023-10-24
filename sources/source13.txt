@@ -1,0 +1,8 @@
+fun boo(x){
+    @ x;
+}
+
+fun main(): int{
+    boo(10);
+    ret 0;
+}

@@ -1,0 +1,14 @@
+fun foo(){
+    @ 30;
+}
+
+fun main(){
+    var z = 3;
+    {
+        var z = 30;
+        if z != 31 {
+            foo();
+        }        
+    };
+    @ z;
+}

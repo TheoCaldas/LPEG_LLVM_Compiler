@@ -1,0 +1,5 @@
+var x;
+x = (3 + 2) * 7;
+var z;
+var y = x / 3;
+@ y < x;

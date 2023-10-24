@@ -1,0 +1,11 @@
+fun boo(x){
+    x = x + 1;
+    @ x;
+}
+
+fun main(): int{
+    var y = 10;
+    boo(y * 2);
+    boo(51 > 3);
+    ret 0;
+}

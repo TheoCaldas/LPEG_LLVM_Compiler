@@ -1,0 +1,15 @@
+fun foo(): int{
+    var x = 20;
+    ret x + 30;
+}
+
+fun boo(){
+    @ 10;
+}
+
+fun main(){
+    var x = foo() + foo();
+    @ x;
+    boo();
+    var y = boo();
+}

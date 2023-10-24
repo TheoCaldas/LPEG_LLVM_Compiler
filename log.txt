@@ -1,0 +1,2 @@
+SYNTAX ERROR NEAR <<    @ 0010|.0313440
+  >>
