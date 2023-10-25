@@ -20,6 +20,7 @@ define double @fabs(double %T0) {
   %T11 = load double, double* %T1
   ret double %T11
 }
+
 define double @fsqrt(double %T12) {
   %T13 = alloca double
   store double %T12, double* %T13
@@ -54,6 +55,7 @@ define double @fsqrt(double %T12) {
   %T36 = load double, double* %T15
   ret double %T36
 }
+
 define i32 @main() {
   %T37 = call double @fsqrt(double 4.000000)
   call i32 (i8*, ...) @printf(i8* getelementptr ([4 x i8], [4 x i8]* @.strD, i64 0, i64 0), double %T37)
@@ -67,3 +69,4 @@ define i32 @main() {
   call i32 (i8*, ...) @printf(i8* getelementptr ([4 x i8], [4 x i8]* @.strD, i64 0, i64 0), double %T41)
   ret i32 0
 }
+

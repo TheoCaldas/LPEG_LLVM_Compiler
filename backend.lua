@@ -414,7 +414,7 @@ function Compiler:codeFunc (func)
   if fType == types.void then
     io.write("  ret void\n")
   end
-  io.write("}\n")
+  io.write("}\n\n")
 end
 -- END: Function Def
 

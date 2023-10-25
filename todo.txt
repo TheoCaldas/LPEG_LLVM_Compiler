@@ -1,0 +1,6 @@
+- Aprimorar condicional 
+- Grafo de fluxo para return
+- Melhorar precisão float
+- Cast implicito de int para float
+- Outros tipos de representacao de float
+- 

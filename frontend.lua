@@ -70,6 +70,7 @@ local EQ = "=" * S
 local HT = lpeg.P"#"
 
 local dot = lpeg.P"."
+-- TO DO: Read other types of float rep
 local float = (digit^1 * dot * digit^1) / tonumber * S
 local integer = digit^1 / tonumber * S
 
