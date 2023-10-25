@@ -218,10 +218,11 @@ function Compiler:codeExp (exp)
   elseif tag == "BAO" then return self:codeExp_BAO(exp)
   elseif tag == "BCO" then return self:codeExp_BCO(exp)
   elseif tag == "call" then
+    local r = self:codeCall(exp)
     if self.functions[exp.name].type == "void" then
       errorMsg(exp.name .. " is a void function")
     end
-    return self:codeCall(exp)
+    return r
   else
     errorMsg(tag .. ": expression not yet implemented")
   end

@@ -1,39 +1,19 @@
 	.section	__TEXT,__text,regular,pure_instructions
 	.build_version macos, 13, 0
-	.globl	_foo                            ; -- Begin function foo
+	.globl	_fabs                           ; -- Begin function fabs
 	.p2align	2
-_foo:                                   ; @foo
+_fabs:                                  ; @fabs
 	.cfi_startproc
-; %bb.0:
-	sub	sp, sp, #48
-	.cfi_def_cfa_offset 48
-	stp	x20, x19, [sp, #16]             ; 16-byte Folded Spill
-	stp	x29, x30, [sp, #32]             ; 16-byte Folded Spill
-	.cfi_offset w30, -8
-	.cfi_offset w29, -16
-	.cfi_offset w19, -24
-	.cfi_offset w20, -32
-Lloh0:
-	adrp	x19, l_.strI@PAGE
-Lloh1:
-	add	x19, x19, l_.strI@PAGEOFF
-	mov	w8, w0
-	stp	w1, w0, [sp, #8]
-	mov	x0, x19
-	str	x8, [sp]
-	bl	_printf
-	ldr	w8, [sp, #8]
-	mov	x0, x19
-	str	x8, [sp]
-	bl	_printf
-	mov	x8, #3689348814741910323
-	ldp	x29, x30, [sp, #32]             ; 16-byte Folded Reload
-	movk	x8, #16395, lsl #48
-	ldp	x20, x19, [sp, #16]             ; 16-byte Folded Reload
-	fmov	d0, x8
-	add	sp, sp, #48
+; %bb.0:                                ; %common.ret
+	sub	sp, sp, #16
+	.cfi_def_cfa_offset 16
+	fmov	d1, d0
+	fneg	d0, d0
+	fcmp	d1, #0.0
+	str	d1, [sp, #8]
+	fcsel	d0, d0, d1, mi
+	add	sp, sp, #16
 	ret
-	.loh AdrpAdd	Lloh0, Lloh1
 	.cfi_endproc
                                         ; -- End function
 	.globl	_main                           ; -- Begin function main
@@ -46,15 +26,13 @@ _main:                                  ; @main
 	stp	x29, x30, [sp, #16]             ; 16-byte Folded Spill
 	.cfi_offset w30, -8
 	.cfi_offset w29, -16
-	mov	w8, #3
-	mov	w9, #4
-	mov	w0, #3
-	mov	w1, #4
-	stp	w9, w8, [sp, #8]
-	bl	_foo
-Lloh2:
+	mov	x8, #3689348814741910323
+	movk	x8, #49163, lsl #48
+	fmov	d0, x8
+	bl	_fabs
+Lloh0:
 	adrp	x0, l_.strD@PAGE
-Lloh3:
+Lloh1:
 	add	x0, x0, l_.strD@PAGEOFF
 	str	d0, [sp]
 	bl	_printf
@@ -62,7 +40,7 @@ Lloh3:
 	mov	w0, wzr
 	add	sp, sp, #32
 	ret
-	.loh AdrpAdd	Lloh2, Lloh3
+	.loh AdrpAdd	Lloh0, Lloh1
 	.cfi_endproc
                                         ; -- End function
 	.section	__TEXT,__cstring,cstring_literals
