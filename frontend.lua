@@ -101,25 +101,27 @@ local prog = lpeg.V"prog"
 local block = lpeg.V"block"
 local call = lpeg.V"call"
 local def = lpeg.V"def"
+local typedVar = lpeg.V"typedVar"
 local postfix = lpeg.V"postfix"
 local comment = lpeg.V"comment"
 
 local syntax = lpeg.P{"defs";
   defs = lpeg.Ct(def^1);
-  def = rw"fun" * id * OP * opt(lpeg.Ct(id * (CM * id)^0)) * CP * opt(CL * id) * block / node("func", "name", "optArgs", "optType", "body");
+  def = rw"fun" * id * OP * opt(lpeg.Ct(typedVar * (CM * typedVar)^0)) * CP * opt(CL * id) * block / node("func", "name", "optArgs", "optType", "body");
   block = OB * prog * CB / node("block", "body");
   prog = stat * SC^-1 * prog^-1 * SC^-1 / node("seq", "s1", "s2");
   stat = 
     block +
     (AT * exp / node("print", "e")) +
     (rw"var" * lpeg.Cmt(id, notRW) * opt(CL * id) * EQ * exp / node("daVAR", "id", "optType", "e")) +
-    (rw"var" * lpeg.Cmt(id, notRW) * CL * id / node("dVAR", "id", "type")) + 
+    (rw"var" * typedVar / node("dVAR", "var")) + 
     (id * EQ * exp / node("aVAR", "id", "e")) +
     (rw"if" * exp * block * (rw"else" * block)^-1 / node("if", "cond", "th", "el")) + 
     (rw"while" * exp * block / node("while", "cond", "body")) +
     (rw"ret" * opt(exp) / node("return", "e")) +
     call +
     comment;
+  typedVar = lpeg.Cmt(id, notRW) * CL * id / node("typedVAR", "id", "type");
   comment = HT * lpeg.C((1 - HT)^0) * HT * S / node("comment", "body");
   call = id * OP * opt(lpeg.Ct(exp * (CM * exp)^0)) * CP / node("call", "name", "optParams");
   primary = 

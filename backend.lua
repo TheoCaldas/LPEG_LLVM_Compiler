@@ -111,12 +111,15 @@ end
 -- END: Conditional
 
 -- START: Function Call
-function Compiler:codeParams (params, n)
-  if n <= 0 then return ")\n" end
+function Compiler:codeParams (params, args)
+  if #args <= 0 then return ")\n" end
   local s = ""
   for i = 1, #params do
     local c = self:codeExp(params[i])
-    s = s .. string.format((i > 1 and ", " or "") .. "i32 %s", c.result)
+    if args[i] ~= c.type then
+      errorMsg(args[i] .. " parameter expected")
+    end
+    s = s .. string.format((i > 1 and ", " or "") .. "%s %s", maptype[args[i]], c.result)
   end
   s = s .. ")\n"
   return s
@@ -129,11 +132,11 @@ function Compiler:codeCall(call)
   local func = self.functions[call.name]
   local params = call.optParams
   local count = isEmpty(params) and 0 or #params
-  local exptdCount = func.argCount
+  local exptdCount = #func.args
   if count ~= exptdCount then
     errorMsg(call.name .. " expected " .. exptdCount .. " parameters, " .. count .. " were given")
   end
-  local rParams = self:codeParams(params, count)
+  local rParams = self:codeParams(params, func.args)
   local temp = self:newTemp()
   shared.fw("  %s = call %s @%s(%s", temp, maptype[func.type], call.name, rParams)
   return self:result_type(temp, func.type)
@@ -332,12 +335,13 @@ end
 
 function Compiler:codeStat_dVAR(st)
   local temp = self:newTemp()
-  self:createVar(st.id, st.type, temp)
-  local map = maptype[st.type]
-  if st.type == types.void then
+  local var = st.var
+  self:createVar(var.id, var.type, temp)
+  local map = maptype[var.type]
+  if var.type == types.void then
     errorMsg("Cannot alloc a void variable")
   elseif map == nil then
-    errorMsg(st.type .. " is not a type")
+    errorMsg(var.type .. " is not a type")
   end
   shared.fw("  %s = alloca %s\n", temp, map)
 end
@@ -369,26 +373,35 @@ function Compiler:codeArg (func)
     return
   end
   local args = func.optArgs
-  local temps = {}
   for i = 1, #args do
     local temp = Compiler:newTemp()
-    shared.fw((i > 1 and ", " or "") .. "i32 %s", temp)
-    temps[i] = temp
+    local argType = args[i].type
+    local map = maptype[argType]
+    if map == nil then
+      errorMsg(argType .. " type does not exist")
+    end
+    shared.fw((i > 1 and ", " or "") .. "%s %s", map, temp)
+    args[i].temp = temp
+    args[i].typemap = map
   end
   io.write(") {\n")
   for i = 1, #args do
-    local argID = args[i]
+    local argID = args[i].id
+    local argTemp = args[i].temp
+    local argType = args[i].type
+    local argMap = args[i].typemap
     local varTemp = self:newTemp()
-    -- TO DO: Change type
-    self:createVar(argID, types.int, varTemp)
-    shared.fw("  %s = alloca i32\n  store i32 %s, i32* %s\n", varTemp, temps[i], varTemp)
+    self:createVar(argID, argType, varTemp)
+    shared.fw("  %s = alloca %s\n  store %s %s, %s* %s\n",
+     varTemp, argMap, argMap, argTemp, argMap, varTemp)
+    table.insert(self.functions[func.name].args, argType)
   end
 end
 
 function Compiler:codeFunc (func)
   local fType = isEmpty(func.optType) and types.void or func.optType
-  local args = isEmpty(func.optArgs) and 0 or #func.optArgs
-  self.functions[func.name] = {type = fType, argCount = args}
+  -- local args = isEmpty(func.optArgs) and 0 or #func.optArgs
+  self.functions[func.name] = {type = fType, args = {}}
   self.currentFunc = func.name
 
   local map = maptype[fType]
