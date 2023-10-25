@@ -115,8 +115,8 @@ function Compiler:codeParams (params, n)
   if n <= 0 then return ")\n" end
   local s = ""
   for i = 1, #params do
-    local r = self:codeExp(params[i])
-    s = s .. string.format((i > 1 and ", " or "") .. "i32 %s", r)
+    local c = self:codeExp(params[i])
+    s = s .. string.format((i > 1 and ", " or "") .. "i32 %s", c.result)
   end
   s = s .. ")\n"
   return s
@@ -126,16 +126,17 @@ function Compiler:codeCall(call)
   if not self.functions[call.name] then
     errorMsg("unknown function " .. call.name)
   end
+  local func = self.functions[call.name]
   local params = call.optParams
   local count = isEmpty(params) and 0 or #params
-  local exptdCount = self.functions[call.name].argCount
+  local exptdCount = func.argCount
   if count ~= exptdCount then
     errorMsg(call.name .. " expected " .. exptdCount .. " parameters, " .. count .. " were given")
   end
   local rParams = self:codeParams(params, count)
-  local reg = self:newTemp()
-  shared.fw("  %s = call i32 @%s(%s", reg, call.name, rParams)
-  return reg
+  local temp = self:newTemp()
+  shared.fw("  %s = call %s @%s(%s", temp, maptype[func.type], call.name, rParams)
+  return self:result_type(temp, func.type)
 end
 -- END: Function Call
 
@@ -271,16 +272,16 @@ end
 function Compiler:codeStat_return(st)
   currentType = self.functions[self.currentFunc].type
   if isEmpty(st.e) then
-    if currentType ~= "void" then
+    if currentType ~= types.void then
       errorMsg(currentType .. " return expected")
     end
     io.write("  ret void\n")
   else
-    if currentType ~= "int" then
+    local c = self:codeExp(st.e)
+    if currentType ~= c.type then
       errorMsg(currentType .. " return expected")
     end
-    local rExp = self:codeExp(st.e)
-    shared.fw("  ret i32 %s\n", rExp.result)
+    shared.fw("  ret %s %s\n", maptype[c.type], c.result)
   end
 end
 
@@ -378,23 +379,10 @@ function Compiler:codeArg (func)
   for i = 1, #args do
     local argID = args[i]
     local varTemp = self:newTemp()
-    self:createVar(argID, varTemp)
+    -- TO DO: Change type
+    self:createVar(argID, types.int, varTemp)
     shared.fw("  %s = alloca i32\n  store i32 %s, i32* %s\n", varTemp, temps[i], varTemp)
   end
-end
-
-function Compiler:codeFunc_void(func)
-  shared.fw("define void @%s(", func.name)
-  self:codeArg(func)
-  self:codeStat(func.body)
-  io.write("  ret void\n}\n")
-end
-
-function Compiler:codeFunc_int(func)
-  shared.fw("define i32 @%s(", func.name)
-  self:codeArg(func)
-  self:codeStat(func.body)
-  io.write("}\n")
 end
 
 function Compiler:codeFunc (func)
@@ -403,13 +391,17 @@ function Compiler:codeFunc (func)
   self.functions[func.name] = {type = fType, argCount = args}
   self.currentFunc = func.name
 
-  if fType == types.void then
-    self:codeFunc_void(func)
-  elseif fType == types.int then
-    self:codeFunc_int(func)
-  else
+  local map = maptype[fType]
+  if map == nil then
     errorMsg(fType .. " type does not exist")
   end
+  shared.fw("define %s @%s(", map, func.name)
+  self:codeArg(func)
+  self:codeStat(func.body)
+  if fType == types.void then
+    io.write("  ret void\n")
+  end
+  io.write("}\n")
 end
 -- END: Function Def
 
