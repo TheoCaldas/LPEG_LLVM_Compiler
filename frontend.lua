@@ -107,7 +107,7 @@ local comment = lpeg.V"comment"
 
 local syntax = lpeg.P{"defs";
   defs = lpeg.Ct(def^1);
-  def = rw"fun" * id * OP * opt(lpeg.Ct(typedVar * (CM * typedVar)^0)) * CP * opt(CL * id) * block / node("func", "name", "optArgs", "optType", "body");
+  def = rw"fun" * id * OP * opt(lpeg.Ct(typedVar * (CM * typedVar)^0)) * CP * opt(CL * id) * block / node("func", "name", "optParams", "optType", "body");
   block = OB * prog * CB / node("block", "body");
   prog = stat * SC^-1 * prog^-1 * SC^-1 / node("seq", "s1", "s2");
   stat = 
@@ -123,7 +123,7 @@ local syntax = lpeg.P{"defs";
     comment;
   typedVar = lpeg.Cmt(id, notRW) * CL * id / node("typedVAR", "id", "type");
   comment = HT * lpeg.C((1 - HT)^0) * HT * S / node("comment", "body");
-  call = id * OP * opt(lpeg.Ct(exp * (CM * exp)^0)) * CP / node("call", "name", "optParams");
+  call = id * OP * opt(lpeg.Ct(exp * (CM * exp)^0)) * CP / node("call", "name", "optArgs");
   primary = 
     (float / node("FLOAT", "num")) +
     (integer / node("INT", "num")) + 

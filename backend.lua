@@ -111,15 +111,15 @@ end
 -- END: Conditional
 
 -- START: Function Call
-function Compiler:codeParams (params, args)
-  if #args <= 0 then return ")\n" end
+function Compiler:codeArgs (args, params)
+  if #params <= 0 then return ")\n" end
   local s = ""
-  for i = 1, #params do
-    local c = self:codeExp(params[i])
-    if args[i] ~= c.type then
-      errorMsg(args[i] .. " parameter expected")
+  for i = 1, #args do
+    local c = self:codeExp(args[i])
+    if params[i] ~= c.type then
+      errorMsg(params[i] .. " argument expected")
     end
-    s = s .. string.format((i > 1 and ", " or "") .. "%s %s", maptype[args[i]], c.result)
+    s = s .. string.format((i > 1 and ", " or "") .. "%s %s", maptype[params[i]], c.result)
   end
   s = s .. ")\n"
   return s
@@ -130,15 +130,15 @@ function Compiler:codeCall(call)
     errorMsg("unknown function " .. call.name)
   end
   local func = self.functions[call.name]
-  local params = call.optParams
-  local count = isEmpty(params) and 0 or #params
-  local exptdCount = #func.args
+  local args = call.optArgs
+  local count = isEmpty(args) and 0 or #args
+  local exptdCount = #func.params
   if count ~= exptdCount then
-    errorMsg(call.name .. " expected " .. exptdCount .. " parameters, " .. count .. " were given")
+    errorMsg(call.name .. " expected " .. exptdCount .. " arguments, " .. count .. " were given")
   end
-  local rParams = self:codeParams(params, func.args)
+  local rArgs = self:codeArgs(args, func.params)
   local temp = self:newTemp()
-  shared.fw("  %s = call %s @%s(%s", temp, maptype[func.type], call.name, rParams)
+  shared.fw("  %s = call %s @%s(%s", temp, maptype[func.type], call.name, rArgs)
   return self:result_type(temp, func.type)
 end
 -- END: Function Call
@@ -368,41 +368,40 @@ end
 -- END: Statement
 
 -- START: Function Def
-function Compiler:codeArg (func)
-  if isEmpty(func.optArgs) then
+function Compiler:codeParam (func)
+  if isEmpty(func.optParams) then
     io.write(") {\n")
     return
   end
-  local args = func.optArgs
-  for i = 1, #args do
+  local params = func.optParams
+  for i = 1, #params do
     local temp = Compiler:newTemp()
-    local argType = args[i].type
-    local map = maptype[argType]
+    local paramType = params[i].type
+    local map = maptype[paramType]
     if map == nil then
-      errorMsg(argType .. " type does not exist")
+      errorMsg(paramType .. " type does not exist")
     end
     shared.fw((i > 1 and ", " or "") .. "%s %s", map, temp)
-    args[i].temp = temp
-    args[i].typemap = map
+    params[i].temp = temp
+    params[i].typemap = map
   end
   io.write(") {\n")
-  for i = 1, #args do
-    local argID = args[i].id
-    local argTemp = args[i].temp
-    local argType = args[i].type
-    local argMap = args[i].typemap
+  for i = 1, #params do
+    local paramID = params[i].id
+    local paramTemp = params[i].temp
+    local paramType = params[i].type
+    local paramMap = params[i].typemap
     local varTemp = self:newTemp()
-    self:createVar(argID, argType, varTemp)
+    self:createVar(paramID, paramType, varTemp)
     shared.fw("  %s = alloca %s\n  store %s %s, %s* %s\n",
-     varTemp, argMap, argMap, argTemp, argMap, varTemp)
-    table.insert(self.functions[func.name].args, argType)
+     varTemp, paramMap, paramMap, paramTemp, paramMap, varTemp)
+    table.insert(self.functions[func.name].params, paramType)
   end
 end
 
 function Compiler:codeFunc (func)
   local fType = isEmpty(func.optType) and types.void or func.optType
-  -- local args = isEmpty(func.optArgs) and 0 or #func.optArgs
-  self.functions[func.name] = {type = fType, args = {}}
+  self.functions[func.name] = {type = fType, params = {}}
   self.currentFunc = func.name
 
   local map = maptype[fType]
@@ -410,7 +409,7 @@ function Compiler:codeFunc (func)
     errorMsg(fType .. " type does not exist")
   end
   shared.fw("define %s @%s(", map, func.name)
-  self:codeArg(func)
+  self:codeParam(func)
   self:codeStat(func.body)
   if fType == types.void then
     io.write("  ret void\n")
