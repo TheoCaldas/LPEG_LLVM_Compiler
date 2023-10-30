@@ -149,7 +149,7 @@ function Compiler:codeExp_INT(exp)
 end
 
 function Compiler:codeExp_FLOAT(exp)
-  return self:result_type(string.format("%f", exp.num), types.float)
+  return self:result_type(string.format("%.15e", exp.num), types.float)
 end
 
 function Compiler:codeExp_uVAR (exp)

@@ -7,7 +7,7 @@ define double @fabs(double %T0) {
   %T1 = alloca double
   store double %T0, double* %T1
   %T5 = load double, double* %T1
-  %T6 = fcmp olt double %T5, 0.000000
+  %T6 = fcmp olt double %T5, 0.000000000000000e+00
   %T7 = zext i1 %T6 to i32
   %T8 = icmp ne i32 %T7, 0
   br i1 %T8, label %L2, label %L3
@@ -28,7 +28,7 @@ define double @fsqrt(double %T12) {
   %T15 = alloca double
   store double %T14, double* %T15
   %T16 = alloca double
-  store double 0.000000, double* %T16
+  store double 9.999999999999999e-12, double* %T16
   br label %L17
   L17:
   %T20 = load double, double* %T13
@@ -48,7 +48,7 @@ define double @fsqrt(double %T12) {
   %T32 = load double, double* %T15
   %T33 = fdiv double %T31, %T32
   %T34 = fadd double %T30, %T33
-  %T35 = fdiv double %T34, 2.000000
+  %T35 = fdiv double %T34, 2.000000000000000e+00
   store double %T35, double* %T15
   br label %L17
   L19:
@@ -57,15 +57,15 @@ define double @fsqrt(double %T12) {
 }
 
 define i32 @main() {
-  %T37 = call double @fsqrt(double 4.000000)
+  %T37 = call double @fsqrt(double 4.000000000000000e+00)
   call i32 (i8*, ...) @printf(i8* getelementptr ([4 x i8], [4 x i8]* @.strD, i64 0, i64 0), double %T37)
-  %T38 = call double @fsqrt(double 9.000000)
+  %T38 = call double @fsqrt(double 9.000000000000000e+00)
   call i32 (i8*, ...) @printf(i8* getelementptr ([4 x i8], [4 x i8]* @.strD, i64 0, i64 0), double %T38)
-  %T39 = call double @fsqrt(double 16.000000)
+  %T39 = call double @fsqrt(double 1.600000000000000e+01)
   call i32 (i8*, ...) @printf(i8* getelementptr ([4 x i8], [4 x i8]* @.strD, i64 0, i64 0), double %T39)
-  %T40 = call double @fsqrt(double 25.000000)
+  %T40 = call double @fsqrt(double 2.500000000000000e+01)
   call i32 (i8*, ...) @printf(i8* getelementptr ([4 x i8], [4 x i8]* @.strD, i64 0, i64 0), double %T40)
-  %T41 = call double @fsqrt(double 1244.214124)
+  %T41 = call double @fsqrt(double 1.244214124002342e+03)
   call i32 (i8*, ...) @printf(i8* getelementptr ([4 x i8], [4 x i8]* @.strD, i64 0, i64 0), double %T41)
   ret i32 0
 }

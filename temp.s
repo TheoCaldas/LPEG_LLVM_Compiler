@@ -29,9 +29,13 @@ _fsqrt:                                 ; @fsqrt
 	.cfi_offset w29, -16
 	.cfi_offset b8, -24
 	.cfi_offset b9, -32
+	mov	x8, #25749
 	fmov	d8, #2.00000000
+	movk	x8, #57721, lsl #16
 	stp	d0, d0, [sp, #16]
-	str	xzr, [sp, #8]
+	movk	x8, #64895, lsl #32
+	movk	x8, #15781, lsl #48
+	str	x8, [sp, #8]
 LBB1_1:                                 ; %L17
                                         ; =>This Inner Loop Header: Depth=1
 	ldp	d0, d1, [sp, #16]
@@ -60,7 +64,7 @@ LBB1_3:                                 ; %L19
 	.section	__TEXT,__literal8,8byte_literals
 	.p2align	3, 0x0                          ; -- Begin function main
 lCPI2_0:
-	.quad	0x409370db43526528              ; double 1244.2141240000001
+	.quad	0x409370db43528d64              ; double 1244.214124002342
 	.section	__TEXT,__text,regular,pure_instructions
 	.globl	_main
 	.p2align	2
