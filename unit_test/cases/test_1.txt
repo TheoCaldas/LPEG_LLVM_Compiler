@@ -1,0 +1,25 @@
+fun fabs(x: float): float{
+    if x < 0.0{
+        ret -x
+    }
+    ret x
+}
+
+fun fsqrt(x: float): float{
+    var r = x
+    var p = 0.00000000001
+    while fabs(x - r * r) > p{
+        r = (r + x / r) / 2.0
+    }
+    ret r
+}
+
+fun main(): int{
+    @ fsqrt(4.0)
+    @ fsqrt(9.0)
+    @ fsqrt(16.0)
+    @ fsqrt(25.0)
+
+    @ fsqrt(1244.214124)
+    ret 0
+}
