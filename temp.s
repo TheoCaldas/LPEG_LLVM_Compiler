@@ -64,7 +64,7 @@ LBB1_3:                                 ; %L19
 	.section	__TEXT,__literal8,8byte_literals
 	.p2align	3, 0x0                          ; -- Begin function main
 lCPI2_0:
-	.quad	0x409370db43528d64              ; double 1244.214124002342
+	.quad	0x409370db43528d65              ; double 1244.2141240023423
 	.section	__TEXT,__text,regular,pure_instructions
 	.globl	_main
 	.p2align	2

@@ -1,6 +1,6 @@
 directory="unit_test/cases";
 results=(
-  "fail - syntax error"
+  "fail - syntax trash"
   "success"
   "fail - no main function"
   "fail - no foo function"
@@ -10,6 +10,18 @@ results=(
   "fail - parameter type error"
   "fail - parameter type error"
   "fail - var type error"
+  "success"
+  "success"
+  "success"
+  "success"
+  "success"
+  "success"
+  "success"
+  "success"
+  "success"
+  "success"
+  "success"
+  "fail - not a type"
 );
 
 cd ..;

@@ -31,12 +31,16 @@ local maptype = {
 
 -- MARK: Auxiliar Functions
 local function errorMsg(msg)
-  shared.log:write("SEMANTIC ERROR\n" .. msg .. "\n")
+  shared.log:write("SEMANTIC ERROR\n" .. msg)
   os.exit(1)
 end
 
 local function isEmpty(string)
   return string == ""
+end
+
+local function notType(typeString)
+  return types[typeString] == nil
 end
 
 -- MARK: LLVM Header
@@ -312,14 +316,14 @@ function Compiler:codeStat_daVAR(st)
     temp, maptype[c.type], maptype[c.type], c.result, maptype[c.type], temp)
   else
     -- explicit type
-    local map = maptype[st.optType]
-    if st.optType == types.void then
-      errorMsg("Cannot alloc a void variable")
-    elseif map == nil then
+    if notType(st.optType) then
       errorMsg(st.optType .. " is not a type")
+    elseif st.optType == types.void then
+      errorMsg("Cannot alloc a void variable")
     elseif c.type ~= st.optType then
       errorMsg("Cannot store " .. c.type .. " value in a " .. st.optType .. " variable")
     end
+    local map = maptype[st.optType]
     shared.fw("  %s = alloca %s\n  store %s %s, %s* %s\n",
     temp, map, map, c.result, map, temp)
   end
@@ -338,13 +342,12 @@ function Compiler:codeStat_dVAR(st)
   local temp = self:newTemp()
   local var = st.var
   self:createVar(var.id, var.type, temp)
-  local map = maptype[var.type]
-  if var.type == types.void then
-    errorMsg("Cannot alloc a void variable")
-  elseif map == nil then
+  if notType(var.type) then
     errorMsg(var.type .. " is not a type")
+  elseif var.type == types.void then
+    errorMsg("Cannot alloc a void variable")
   end
-  shared.fw("  %s = alloca %s\n", temp, map)
+  shared.fw("  %s = alloca %s\n", temp, maptype[var.type])
 end
 
 function Compiler:codeStat(st)
@@ -377,10 +380,10 @@ function Compiler:codeParam (func)
   for i = 1, #params do
     local temp = Compiler:newTemp()
     local paramType = params[i].type
-    local map = maptype[paramType]
-    if map == nil then
+    if notType(paramType) then
       errorMsg(paramType .. " type does not exist")
     end
+    local map = maptype[paramType]
     shared.fw((i > 1 and ", " or "") .. "%s %s", map, temp)
     params[i].temp = temp
     params[i].typemap = map
@@ -404,11 +407,10 @@ function Compiler:codeFunc (func)
   self.functions[func.name] = {type = fType, params = {}}
   self.currentFunc = func.name
 
-  local map = maptype[fType]
-  if map == nil then
+  if notType(fType) then
     errorMsg(fType .. " type does not exist")
   end
-  shared.fw("define %s @%s(", map, func.name)
+  shared.fw("define %s @%s(", maptype[fType], func.name)
   self:codeParam(func)
   self:codeStat(func.body)
   if fType == types.void then

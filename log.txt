@@ -1,2 +1,2 @@
 SEMANTIC ERROR
-Cannot store int value in a float variable
+double is not a type

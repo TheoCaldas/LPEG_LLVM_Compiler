@@ -1,0 +1,11 @@
+fun foo(x: float, y: float, z: int): float{
+    @ z
+    ret x + y
+}
+
+fun main(): int{
+    var a = -235.23523
+    var b: float = 4.52325
+    @ foo(a, b, 3)
+    ret 0
+}

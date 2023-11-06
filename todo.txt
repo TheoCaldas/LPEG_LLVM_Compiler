@@ -1,9 +1,6 @@
 - Aprimorar condicional
 - Grafo de fluxo para return
 - Outros tipos de representacao de float
-- Fzr testes automatizados -> caso de erro
-- Sintatica separada para type
-- Refatorar verificacao de tipo
 - Separar cada instrucao binaria
 - Cast explicito
 - Cast implicito

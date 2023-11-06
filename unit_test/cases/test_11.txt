@@ -1,0 +1,32 @@
+fun abs(x: int): int{
+    if x < 0{
+        ret -x
+    }
+    ret x
+}
+
+fun min(x: int, y: int): int{
+    if x < y{
+        ret x
+    }
+    ret y
+}
+
+fun test(){
+    var x = 1
+    var y = -3
+    if min(x, abs(y)) > 0{
+        if min(x, y) < 0{
+            @ 300 # when x is positive and y is negative #
+            ret
+        }
+        @ 200 # when both are positive #
+        ret
+    }
+    @ 100 # when x is negative  #
+}
+
+fun main(): int{
+    test()
+    ret 0
+} 
