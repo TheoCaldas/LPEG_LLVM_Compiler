@@ -36,7 +36,9 @@ for ((i=0; i<${#results[@]}; i++)); do
   lua "comp.lua" < $file > unit_test/test.ll;
   echo "log:";
   cat log.txt;
-  # llc unit_test/test.ll;
+  if [ "success" == "${results[i]}" ]; then
+    llc unit_test/test.ll;
+  fi
   echo;
 done;
 echo;

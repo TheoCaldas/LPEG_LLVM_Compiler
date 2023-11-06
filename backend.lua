@@ -7,26 +7,44 @@ local types = {
   float = "float",
 }
 
-local BAOmap = {
+-- type to LLVM
+local maptype = { 
+  [types.void] = "void",
+  [types.int] = "i32",
+  [types.float] = "double",
+}
+
+-- operators to LLVM
+local BAO_INT = {
   ["+"] = "add",
   ["-"] = "sub",
   ["*"] = "mul",
-  ["/"] = "div",
+  ["/"] = "sdiv",
 }
 
-local BCOmap = {
-  [">="] = "ge",
-  ["<="] = "le",
-  [">"] = "gt",
-  ["<"] = "lt",
+local BAO_FLOAT = {
+  ["+"] = "fadd",
+  ["-"] = "fsub",
+  ["*"] = "fmul",
+  ["/"] = "fdiv",
+}
+
+local BCO_INT = {
+  [">="] = "sge",
+  ["<="] = "sle",
+  [">"] = "sgt",
+  ["<"] = "slt",
   ["=="] = "eq",
   ["!="] = "ne",
 }
 
-local maptype = {
-  [types.void] = "void",
-  [types.int] = "i32",
-  [types.float] = "double",
+local BCO_FLOAT = {
+  [">="] = "oge",
+  ["<="] = "ole",
+  [">"] = "ogt",
+  ["<"] = "olt",
+  ["=="] = "oeq",
+  ["!="] = "une",
 }
 
 -- MARK: Auxiliar Functions
@@ -129,11 +147,14 @@ function Compiler:codeArgs (args, params)
   return s
 end
 
-function Compiler:codeCall(call)
+function Compiler:codeCall(call, asExp)
   if not self.functions[call.name] then
     errorMsg("unknown function " .. call.name)
   end
   local func = self.functions[call.name]
+  if func.type == types.void and asExp then
+    errorMsg(call.name .. " is a void function")
+  end
   local args = call.optArgs
   local count = isEmpty(args) and 0 or #args
   local exptdCount = #func.params
@@ -142,7 +163,11 @@ function Compiler:codeCall(call)
   end
   local rArgs = self:codeArgs(args, func.params)
   local temp = self:newTemp()
-  shared.fw("  %s = call %s @%s(%s", temp, maptype[func.type], call.name, rArgs)
+  if not asExp and func.type == types.void then
+    shared.fw("  call %s @%s(%s", maptype[func.type], call.name, rArgs)
+  else
+    shared.fw("  %s = call %s @%s(%s", temp, maptype[func.type], call.name, rArgs)
+  end
   return self:result_type(temp, func.type)
 end
 -- END: Function Call
@@ -183,10 +208,9 @@ function Compiler:codeExp_BAO (exp)
   if coded1.type ~= coded2.type then
     errorMsg(coded1.type .. " " .. exp.op .. " " .. coded2.type .. " is not defined")
   elseif coded1.type == types.int then
-    local inst = exp.op == "/" and "s" .. BAOmap[exp.op] or BAOmap[exp.op]
-    shared.fw("  %s = %s i32 %s, %s\n", temp, inst, coded1.result, coded2.result)
+    shared.fw("  %s = %s i32 %s, %s\n", temp, BAO_INT[exp.op], coded1.result, coded2.result)
   elseif coded1.type == types.float then
-    shared.fw("  %s = f%s double %s, %s\n", temp, BAOmap[exp.op], coded1.result, coded2.result)
+    shared.fw("  %s = %s double %s, %s\n", temp, BAO_FLOAT[exp.op], coded1.result, coded2.result)
   else
     errorMsg("Binary operation not defined for " .. coded.type)
   end
@@ -202,11 +226,9 @@ function Compiler:codeExp_BCO (exp)
   if c1.type ~= c2.type then
     errorMsg(c1.type .. " " .. exp.op .. " " .. c2.type .. " is not defined")
   elseif c1.type == types.int then
-    local inst = (exp.op == "==" or exp.op == "!=") and BCOmap[exp.op] or "s" .. BCOmap[exp.op]
-    shared.fw("  %s = icmp %s i32 %s, %s\n  %s = zext i1 %s to i32\n", t1, inst, c1.result, c2.result, t2, t1)
+    shared.fw("  %s = icmp %s i32 %s, %s\n  %s = zext i1 %s to i32\n", t1, BCO_INT[exp.op], c1.result, c2.result, t2, t1)
   elseif c1.type == types.float then
-    local inst = (exp.op == "!=") and "u" .. BCOmap[exp.op] or "o" .. BCOmap[exp.op]
-    shared.fw("  %s = fcmp %s double %s, %s\n  %s = zext i1 %s to i32\n", t1, inst, c1.result, c2.result, t2, t1)
+    shared.fw("  %s = fcmp %s double %s, %s\n  %s = zext i1 %s to i32\n", t1, BCO_FLOAT[exp.op], c1.result, c2.result, t2, t1)
   else
     errorMsg("Comparative operation not defined for " .. coded.type)
   end
@@ -221,12 +243,12 @@ function Compiler:codeExp (exp)
   elseif tag == "UAO" then return self:codeExp_UAO(exp)
   elseif tag == "BAO" then return self:codeExp_BAO(exp)
   elseif tag == "BCO" then return self:codeExp_BCO(exp)
-  elseif tag == "call" then
-    local r = self:codeCall(exp)
-    if self.functions[exp.name].type == "void" then
-      errorMsg(exp.name .. " is a void function")
-    end
-    return r
+  elseif tag == "call" then return self:codeCall(exp, true)
+    -- local r = self:codeCall(exp)
+    -- if self.functions[exp.name].type == types.void then
+    --   errorMsg(exp.name .. " is a void function")
+    -- end
+    -- return r
   else
     errorMsg(tag .. ": expression not yet implemented")
   end
@@ -356,7 +378,7 @@ function Compiler:codeStat(st)
 
   if tag == "seq" then return self:codeStat_seq(st)
   elseif tag == "block" then return self:codeStat_block(st)
-  elseif tag == "call" then return self:codeCall(st)
+  elseif tag == "call" then return self:codeCall(st, false)
   elseif tag == "if" then return self:codeStat_if(st)
   elseif tag == "while" then return self:codeStat_while(st)
   elseif tag == "return" then return self:codeStat_return(st)
