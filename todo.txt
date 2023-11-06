@@ -1,4 +1,7 @@
 - Aprimorar condicional
 - Grafo de fluxo para return
 - Outros tipos de representacao de float
-- Cast implicito
+- Cast implicito na atribuicao
+- Corrigir cast explicito de tipo para mesmo tipo
+- Encapsular cast
+- Recursao posfixada

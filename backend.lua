@@ -213,10 +213,24 @@ end
 function Compiler:codeExp_BAO (exp)
   local coded1 = self:codeExp(exp.e1)
   local coded2 = self:codeExp(exp.e2)
-  local temp = self:newTemp()
   if coded1.type ~= coded2.type then
-    errorMsg(coded1.type .. " " .. exp.op .. " " .. coded2.type .. " is not defined")
-  elseif coded1.type == types.int then
+    if coded1.type == types.int and coded2.type == types.float then
+      local castTemp = self:newTemp()
+      shared.fw("  %s = sitofp i32 %s to double\n", castTemp, coded1.result)
+      coded1.type = types.float
+      coded1.result = castTemp
+    elseif coded1.type == types.float and coded2.type == types.int then
+      local castTemp = self:newTemp()
+      shared.fw("  %s = sitofp i32 %s to double\n", castTemp, coded2.result)
+      coded2.type = types.float
+      coded2.result = castTemp
+    else
+      errorMsg(coded1.type .. " " .. exp.op .. " " .. coded2.type .. " is not defined")
+    end
+  end
+
+  local temp = self:newTemp()
+  if coded1.type == types.int then
     shared.fw("  %s = %s i32 %s, %s\n", temp, BAO_INT[exp.op], coded1.result, coded2.result)
   elseif coded1.type == types.float then
     shared.fw("  %s = %s double %s, %s\n", temp, BAO_FLOAT[exp.op], coded1.result, coded2.result)

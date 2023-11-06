@@ -1,4 +1,4 @@
-fun foo(x: float): int{
+fun foo(x: int): int{
     ret 1
 }
 

@@ -1,2 +1,1 @@
-SEMANTIC ERROR
-double is not a type
+COMPILATION SUCCEED
