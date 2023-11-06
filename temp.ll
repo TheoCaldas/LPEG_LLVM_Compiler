@@ -27,6 +27,14 @@ define i32 @main() {
   %T16 = sitofp i32 %T13 to double
   %T17 = fadd double %T16, %T15
   call i32 (i8*, ...) @printf(i8* getelementptr ([4 x i8], [4 x i8]* @.strD, i64 0, i64 0), double %T17)
+  call i32 (i8*, ...) @printf(i8* getelementptr ([4 x i8], [4 x i8]* @.strI, i64 0, i64 0), i32 1)
+  %T18 = load i32, i32* %T8
+  %T19 = sitofp i32 %T18 to double
+  %T20 = alloca double
+  store double %T19, double* %T20
+  %T21 = load i32, i32* %T8
+  %T22 = alloca i32
+  store i32 %T21, i32* %T22
   ret i32 0
 }
 

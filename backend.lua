@@ -141,7 +141,7 @@ function Compiler:codeArgs (args, params)
     if params[i] ~= c.type then -- arg type not param type
       errorMsg(params[i] .. " argument expected")
     end
-    table.insert(typeResult, {type = maptype[params[i]], result = c.result})
+    table.insert(typeResult, self:result_type(c.result, maptype[params[i]]))
   end
   return typeResult
 end
@@ -267,7 +267,10 @@ function Compiler:codeExp_cast(exp)
     errorMsg(destType .. " is not a type")
   elseif destType == types.void then
     errorMsg("Cannot cast into void")
+  elseif destType == prevType then
+    return self:result_type(c.result, c.type)
   end
+
   local temp = self:newTemp()
   if prevType == types.int and destType == types.float then
     shared.fw("  %s = sitofp i32 %s to double\n", temp, c.result) 

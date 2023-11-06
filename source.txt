@@ -7,5 +7,8 @@ fun main(): int{
     @ x as int + y as float
 
     @ 1
+
+    var w: float = y as float
+    var fsa = y as int
     ret 0
 }
