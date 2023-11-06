@@ -1,1 +1,2 @@
-COMPILATION SUCCEED
+SEMANTIC ERROR
+double is not a type

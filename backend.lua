@@ -135,38 +135,47 @@ end
 -- START: Function Call
 function Compiler:codeArgs (args, params)
   if #params <= 0 then return ")\n" end
-  local s = ""
+  typeResult = {}
   for i = 1, #args do
     local c = self:codeExp(args[i])
-    if params[i] ~= c.type then
+    if params[i] ~= c.type then -- arg type not param type
       errorMsg(params[i] .. " argument expected")
     end
-    s = s .. string.format((i > 1 and ", " or "") .. "%s %s", maptype[params[i]], c.result)
+    table.insert(typeResult, {type = maptype[params[i]], result = c.result})
   end
-  s = s .. ")\n"
-  return s
+  return typeResult
 end
 
 function Compiler:codeCall(call, asExp)
-  if not self.functions[call.name] then
+  if not self.functions[call.name] then -- function does not exist
     errorMsg("unknown function " .. call.name)
   end
   local func = self.functions[call.name]
-  if func.type == types.void and asExp then
+  if func.type == types.void and asExp then -- void function as exp
     errorMsg(call.name .. " is a void function")
   end
   local args = call.optArgs
   local count = isEmpty(args) and 0 or #args
   local exptdCount = #func.params
-  if count ~= exptdCount then
+  if count ~= exptdCount then -- params and args not same length
     errorMsg(call.name .. " expected " .. exptdCount .. " arguments, " .. count .. " were given")
   end
-  local rArgs = self:codeArgs(args, func.params)
+  -- code args
+  local sArgs = ""
+  if count > 0 then -- if has params
+    local codedArgs = self:codeArgs(args, func.params)
+    for i = 1, #codedArgs do
+      local separator = (i > 1 and ", " or "")
+      sArgs = sArgs .. (separator .. codedArgs[i].type .. " " .. codedArgs[i].result)
+    end
+  end
+  sArgs = sArgs .. ")\n"
   local temp = self:newTemp()
-  if not asExp and func.type == types.void then
-    shared.fw("  call %s @%s(%s", maptype[func.type], call.name, rArgs)
+  -- write call
+  if not asExp and func.type == types.void then -- if statement and void
+    shared.fw("  call %s @%s(%s", maptype[func.type], call.name, sArgs)
   else
-    shared.fw("  %s = call %s @%s(%s", temp, maptype[func.type], call.name, rArgs)
+    shared.fw("  %s = call %s @%s(%s", temp, maptype[func.type], call.name, sArgs)
   end
   return self:result_type(temp, func.type)
 end
@@ -244,13 +253,7 @@ function Compiler:codeExp (exp)
   elseif tag == "BAO" then return self:codeExp_BAO(exp)
   elseif tag == "BCO" then return self:codeExp_BCO(exp)
   elseif tag == "call" then return self:codeCall(exp, true)
-    -- local r = self:codeCall(exp)
-    -- if self.functions[exp.name].type == types.void then
-    --   errorMsg(exp.name .. " is a void function")
-    -- end
-    -- return r
-  else
-    errorMsg(tag .. ": expression not yet implemented")
+  else errorMsg(tag .. ": expression not yet implemented")
   end
 end
 -- END: Expression

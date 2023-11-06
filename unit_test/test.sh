@@ -25,6 +25,7 @@ results=(
 );
 
 cd ..;
+# for ((i=11; i==11; i++)); do
 for ((i=0; i<${#results[@]}; i++)); do
   echo;
   echo "-------TEST $i-------";
