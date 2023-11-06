@@ -31,7 +31,7 @@ local maptype = {
 
 -- MARK: Auxiliar Functions
 local function errorMsg(msg)
-  shared.log:write("SEMANTIC ERROR\n" .. msg)
+  shared.log:write("SEMANTIC ERROR\n" .. msg .. "\n")
   os.exit(1)
 end
 

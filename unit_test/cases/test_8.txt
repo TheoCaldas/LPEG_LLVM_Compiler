@@ -1,0 +1,8 @@
+fun foo(x: int): int{
+    ret 1
+}
+
+fun main(): int{
+    @ foo (50.1)
+    ret 0
+}

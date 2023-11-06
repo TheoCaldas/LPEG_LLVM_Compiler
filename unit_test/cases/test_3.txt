@@ -1,0 +1,4 @@
+fun main(): int{
+    @ foo ()
+    ret 0
+}
