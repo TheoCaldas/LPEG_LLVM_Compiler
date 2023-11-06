@@ -23,6 +23,7 @@ results=(
   "success"
   "fail - not a type"
   "success"
+  "success"
 );
 
 cd ..;

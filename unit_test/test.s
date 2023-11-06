@@ -5,44 +5,49 @@
 _main:                                  ; @main
 	.cfi_startproc
 ; %bb.0:
-	sub	sp, sp, #48
-	.cfi_def_cfa_offset 48
-	stp	x20, x19, [sp, #16]             ; 16-byte Folded Spill
-	stp	x29, x30, [sp, #32]             ; 16-byte Folded Spill
+	sub	sp, sp, #64
+	.cfi_def_cfa_offset 64
+	stp	x20, x19, [sp, #32]             ; 16-byte Folded Spill
+	stp	x29, x30, [sp, #48]             ; 16-byte Folded Spill
 	.cfi_offset w30, -8
 	.cfi_offset w29, -16
 	.cfi_offset w19, -24
 	.cfi_offset w20, -32
+	mov	x8, #-3689348814741910324
 Lloh0:
 	adrp	x19, l_.strD@PAGE
 Lloh1:
 	add	x19, x19, l_.strD@PAGEOFF
-	mov	x8, #4615063718147915776
+	movk	x8, #52429
+	movk	x8, #16422, lsl #48
 	mov	x0, x19
 	str	x8, [sp]
 	bl	_printf
-	mov	x8, #4616189618054758400
+	mov	x8, #4617878467915022336
+	mov	w9, #1
 	mov	x0, x19
+	str	x8, [sp, #24]
+	mov	x8, #4620974692658839552
+	str	w9, [sp, #20]
 	str	x8, [sp]
 	bl	_printf
-Lloh2:
-	adrp	x19, l_.strI@PAGE
-Lloh3:
-	add	x19, x19, l_.strI@PAGEOFF
-	mov	w8, #3
+	ldr	d0, [sp, #24]
 	mov	x0, x19
-	str	x8, [sp]
+	ldr	w9, [sp, #20]
+	fcvtzs	w8, d0
+	scvtf	d0, w9
+	scvtf	d1, w8
+	fadd	d0, d1, d0
+	str	d0, [sp]
 	bl	_printf
-	mov	w8, #4
-	mov	x0, x19
-	str	x8, [sp]
-	bl	_printf
-	ldp	x29, x30, [sp, #32]             ; 16-byte Folded Reload
+	ldr	w8, [sp, #20]
 	mov	w0, wzr
-	ldp	x20, x19, [sp, #16]             ; 16-byte Folded Reload
-	add	sp, sp, #48
+	ldp	x29, x30, [sp, #48]             ; 16-byte Folded Reload
+	scvtf	d0, w8
+	ldp	x20, x19, [sp, #32]             ; 16-byte Folded Reload
+	str	d0, [sp, #8]
+	add	sp, sp, #64
 	ret
-	.loh AdrpAdd	Lloh2, Lloh3
 	.loh AdrpAdd	Lloh0, Lloh1
 	.cfi_endproc
                                         ; -- End function

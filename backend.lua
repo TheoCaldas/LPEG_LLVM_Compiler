@@ -181,6 +181,34 @@ function Compiler:codeCall(call, asExp)
 end
 -- END: Function Call
 
+-- START: Type Cast
+function Compiler:codeToInt(coded)
+  if coded.type == types.int then
+    return coded
+  end
+  local temp = self:newTemp()
+  if coded.type == types.float then
+    shared.fw("  %s = fptosi double %s to i32\n", temp, coded.result)
+  else
+    errorMsg("Cannot cast from " .. coded.type .. " to int")
+  end
+  return self:result_type(temp, types.int)
+end
+
+function Compiler:codeToFloat(coded)
+  if coded.type == types.float then
+    return coded
+  end
+  local temp = self:newTemp()
+  if coded.type == types.int then
+    shared.fw("  %s = sitofp i32 %s to double\n", temp, coded.result)
+  else
+    errorMsg("Cannot cast from " .. coded.type .. " to float")
+  end
+  return self:result_type(temp, types.float)
+end
+-- END: Type Cast
+
 -- START: Expression
 function Compiler:codeExp_INT(exp)
   return self:result_type(string.format("%d", exp.num), types.int)
@@ -213,20 +241,10 @@ end
 function Compiler:codeExp_BAO (exp)
   local coded1 = self:codeExp(exp.e1)
   local coded2 = self:codeExp(exp.e2)
-  if coded1.type ~= coded2.type then
-    if coded1.type == types.int and coded2.type == types.float then
-      local castTemp = self:newTemp()
-      shared.fw("  %s = sitofp i32 %s to double\n", castTemp, coded1.result)
-      coded1.type = types.float
-      coded1.result = castTemp
-    elseif coded1.type == types.float and coded2.type == types.int then
-      local castTemp = self:newTemp()
-      shared.fw("  %s = sitofp i32 %s to double\n", castTemp, coded2.result)
-      coded2.type = types.float
-      coded2.result = castTemp
-    else
-      errorMsg(coded1.type .. " " .. exp.op .. " " .. coded2.type .. " is not defined")
-    end
+
+  if coded1.type ~= coded2.type then -- implicit cast to float
+    coded1 = self:codeToFloat(coded1)
+    coded2 = self:codeToFloat(coded2)
   end
 
   local temp = self:newTemp()
@@ -267,19 +285,17 @@ function Compiler:codeExp_cast(exp)
     errorMsg(destType .. " is not a type")
   elseif destType == types.void then
     errorMsg("Cannot cast into void")
-  elseif destType == prevType then
-    return self:result_type(c.result, c.type)
   end
-
-  local temp = self:newTemp()
-  if prevType == types.int and destType == types.float then
-    shared.fw("  %s = sitofp i32 %s to double\n", temp, c.result) 
+  -- destType is valid
+  if destType == prevType then
+    return c
+  elseif prevType == types.int and destType == types.float then
+    return self:codeToFloat(c)
   elseif prevType == types.float and destType == types.int then
-    shared.fw("  %s = fptosi double %s to i32\n", temp, c.result) 
+    return self:codeToInt(c)
   else
     errorMsg("Cast not defined from " .. prevType .. " to " .. destType)
   end
-  return self:result_type(temp, destType)
 end
 
 function Compiler:codeExp (exp)

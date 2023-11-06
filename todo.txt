@@ -1,8 +1,6 @@
 - Aprimorar condicional
 - Grafo de fluxo para return
 - Outros tipos de representacao de float
-- Corrigir cast explicito de tipo para mesmo tipo
-- Encapsular cast
 - Recursao posfixada
 - ID -> var
 - array
