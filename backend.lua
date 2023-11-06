@@ -244,6 +244,27 @@ function Compiler:codeExp_BCO (exp)
   return self:result_type(t2, types.int)
 end
 
+function Compiler:codeExp_cast(exp)
+  local c = self:codeExp(exp.e)
+  local prevType = c.type
+  local destType = exp.type
+
+  if notType(destType) then
+    errorMsg(destType .. " is not a type")
+  elseif destType == types.void then
+    errorMsg("Cannot cast into void")
+  end
+  local temp = self:newTemp()
+  if prevType == types.int and destType == types.float then
+    shared.fw("  %s = sitofp i32 %s to double\n", temp, c.result) 
+  elseif prevType == types.float and destType == types.int then
+    shared.fw("  %s = fptosi double %s to i32\n", temp, c.result) 
+  else
+    errorMsg("Cast not defined from " .. prevType .. " to " .. destType)
+  end
+  return self:result_type(temp, destType)
+end
+
 function Compiler:codeExp (exp)
   local tag = exp.tag
   if tag == "INT" then return self:codeExp_INT(exp)
@@ -253,6 +274,7 @@ function Compiler:codeExp (exp)
   elseif tag == "BAO" then return self:codeExp_BAO(exp)
   elseif tag == "BCO" then return self:codeExp_BCO(exp)
   elseif tag == "call" then return self:codeCall(exp, true)
+  elseif tag == "cast" then return self:codeExp_cast(exp)
   else errorMsg(tag .. ": expression not yet implemented")
   end
 end

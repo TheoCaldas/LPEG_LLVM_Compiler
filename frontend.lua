@@ -2,7 +2,7 @@ local lpeg = require "lpeg"
 local shared = require "shared"
 
 -- MARK: Local Vars
-local reservedWords = {"var", "ret", "fun", "if", "else", "while"}
+local reservedWords = {"var", "ret", "fun", "if", "else", "while", "as"}
 local lastpos = 0
 
 -- MARK: Auxiliar Functions
@@ -102,10 +102,11 @@ local prog = lpeg.V"prog"
 local block = lpeg.V"block"
 local call = lpeg.V"call"
 local def = lpeg.V"def"
-local type = lpeg.V"type"
+local rawType = lpeg.V"rawType"
 local typed = lpeg.V"typed"
 local typedVar = lpeg.V"typedVar"
 local postfix = lpeg.V"postfix"
+local casted = lpeg.V"casted"
 local comment = lpeg.V"comment"
 
 local syntax = lpeg.P{"defs";
@@ -124,8 +125,8 @@ local syntax = lpeg.P{"defs";
     (rw"ret" * opt(exp) / node("return", "e")) +
     call +
     comment;
-  type = id;
-  typed = CL * id;
+  rawType = id;
+  typed = CL * rawType;
   typedVar = lpeg.Cmt(id, notRW) * typed / node("typedVAR", "id", "type");
   comment = HT * lpeg.C((1 - HT)^0) * HT * S / node("comment", "body");
   call = id * OP * opt(lpeg.Ct(exp * (CM * exp)^0)) * CP / node("call", "name", "optArgs");
@@ -135,7 +136,10 @@ local syntax = lpeg.P{"defs";
     id / node("uVAR", "id") +
     (OP * exp * CP);
   postfix = call + primary;
-  factor = postfix + ((opN * postfix) / node("UAO", "op", "e"));
+  casted = 
+    (postfix * rw"as" * rawType) / node("cast", "e", "type") +
+    postfix,
+  factor = casted + ((opN * casted) / node("UAO", "op", "e"));
   expM = lpeg.Ct(factor * (opM * factor)^0) / tagFold("BAO");
   expA = lpeg.Ct(expM * (opA * expM)^0) / tagFold("BAO");
   expC = lpeg.Ct(expA * (opC * expA)^-1) / tagFold("BCO");
