@@ -1,6 +1,5 @@
 - Aprimorar condicional
 - Grafo de fluxo para return
 - Outros tipos de representacao de float
-- Recursao posfixada
 - ID -> var
 - array

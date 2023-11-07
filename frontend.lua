@@ -18,11 +18,15 @@ local function node (tag, ...)
   end
 end
 
-local function tagFold (tag)
+local function fold (tag, ...)
+  local labels = {...}
   return function (t)
     local res = t[1]
-    for i = 2, #t, 2 do
-      res = {tag = tag, e1 = res, op = t[i], e2 = t[i + 1]}
+    for i = 2, #t, #labels - 1 do
+      res = {tag = tag, [labels[1]] = res}
+      for j = 2, #labels do
+        res[labels[j]] = t[i + j - 2]
+      end
     end
     return res
   end
@@ -137,12 +141,11 @@ local syntax = lpeg.P{"defs";
     (OP * exp * CP);
   postfix = call + primary;
   casted = 
-    (postfix * rw"as" * rawType) / node("cast", "e", "type") +
-    postfix,
+    lpeg.Ct(postfix * (rw"as" * rawType)^0) / fold("cast", "e", "type");
   factor = casted + ((opN * casted) / node("UAO", "op", "e"));
-  expM = lpeg.Ct(factor * (opM * factor)^0) / tagFold("BAO");
-  expA = lpeg.Ct(expM * (opA * expM)^0) / tagFold("BAO");
-  expC = lpeg.Ct(expA * (opC * expA)^-1) / tagFold("BCO");
+  expM = lpeg.Ct(factor * (opM * factor)^0) / fold("BAO", "e1", "op", "e2");
+  expA = lpeg.Ct(expM * (opA * expM)^0) / fold("BAO", "e1", "op", "e2");
+  expC = lpeg.Ct(expA * (opC * expA)^-1) / fold("BCO", "e1", "op", "e2");
   exp = expC;
   S = lpeg.S(" \n\t")^0 * lpeg.P(
     function (_,p)

@@ -24,10 +24,12 @@ results=(
   "fail - not a type"
   "success"
   "success"
+  "success"
+  "success"
 );
 
 cd ..;
-# for ((i=11; i==11; i++)); do
+# for ((i=17; i==17; i++)); do
 for ((i=0; i<${#results[@]}; i++)); do
   echo;
   echo "-------TEST $i-------";
