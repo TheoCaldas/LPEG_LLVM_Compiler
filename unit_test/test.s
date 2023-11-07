@@ -11,23 +11,16 @@ _main:                                  ; @main
 	.cfi_offset w30, -8
 	.cfi_offset w29, -16
 Lloh0:
-	adrp	x0, l_.strD@PAGE
-Lloh1:
-	add	x0, x0, l_.strD@PAGEOFF
-	mov	x8, #-4591138345127510016
-	str	x8, [sp]
-	bl	_printf
-Lloh2:
 	adrp	x0, l_.strI@PAGE
-Lloh3:
+Lloh1:
 	add	x0, x0, l_.strI@PAGEOFF
-	str	xzr, [sp]
+	mov	w8, #4
+	str	x8, [sp]
 	bl	_printf
 	ldp	x29, x30, [sp, #16]             ; 16-byte Folded Reload
 	mov	w0, wzr
 	add	sp, sp, #32
 	ret
-	.loh AdrpAdd	Lloh2, Lloh3
 	.loh AdrpAdd	Lloh0, Lloh1
 	.cfi_endproc
                                         ; -- End function

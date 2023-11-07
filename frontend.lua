@@ -49,6 +49,11 @@ local function I (msg)
   return lpeg.P(function () shared.log:write(msg .. "\n"); return true end)
 end
 
+local function updateLastPos(_,p)
+  lastpos = math.max(lastpos, p); 
+  return true 
+end
+
 local function syntaxError(input)
   shared.log:write("SYNTAX ERROR NEAR\n<<" ..
     string.sub(input, lastpos - 10, lastpos - 1) .. "|" ..
@@ -140,18 +145,13 @@ local syntax = lpeg.P{"defs";
     id / node("uVAR", "id") +
     (OP * exp * CP);
   postfix = call + primary;
-  casted = 
-    lpeg.Ct(postfix * (rw"as" * rawType)^0) / fold("cast", "e", "type");
+  casted = lpeg.Ct(postfix * (rw"as" * rawType)^0) / fold("cast", "e", "type");
   factor = casted + ((opN * casted) / node("UAO", "op", "e"));
   expM = lpeg.Ct(factor * (opM * factor)^0) / fold("BAO", "e1", "op", "e2");
   expA = lpeg.Ct(expM * (opA * expM)^0) / fold("BAO", "e1", "op", "e2");
   expC = lpeg.Ct(expA * (opC * expA)^-1) / fold("BCO", "e1", "op", "e2");
   exp = expC;
-  S = lpeg.S(" \n\t")^0 * lpeg.P(
-    function (_,p)
-      lastpos = math.max(lastpos, p); 
-      return true end
-  )
+  S = lpeg.S(" \n\t")^0 * lpeg.P(updateLastPos);
 }
 
 -- Do not succeed if there are token remains
