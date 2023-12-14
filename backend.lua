@@ -130,6 +130,27 @@ function Compiler:codeCond (exp, Ltrue, Lfalse)
   br i1 %s, label %%%s, label %%%s
 ]], aux, c.result, aux, Ltrue, Lfalse)
 end
+
+function Compiler:codeCondFor(counter, stop, Ltrue, Lfalse)
+  local t0 = self:newTemp()
+  local t1 = self:newTemp()
+  local t2 = self:newTemp()
+  local t3 = self:newTemp()
+  shared.fw("  %s = load %s, %s* %s\n", t0, maptype[types.int], maptype[types.int], counter)
+  shared.fw("  %s = icmp %s i32 %s, %s\n  %s = zext i1 %s to i32\n", t1, BCO_INT["<="], t0, stop, t2, t1)
+  shared.fw([[
+  %s = icmp ne i32 %s, 0
+  br i1 %s, label %%%s, label %%%s
+  ]], t3, t2, t3, Ltrue, Lfalse)
+end
+
+function Compiler:codeIncrement(counter)
+  local t0 = self:newTemp()
+  local t1 = self:newTemp()
+  shared.fw("  %s = load %s, %s* %s\n", t0, maptype[types.int], maptype[types.int], counter)
+  shared.fw("  %s = %s i32 %s, %s\n", t1, BAO_INT["+"], t0, "1")
+  shared.fw("  store %s %s, %s* %s\n", maptype[types.int], t1, maptype[types.int], counter)
+end
 -- END: Conditional
 
 -- START: Function Call
@@ -357,6 +378,28 @@ function Compiler:codeStat_while(st)
   self:codeLabel(Lend)
 end
 
+function Compiler:codeStat_for(st)
+  shared.log:write(shared.pt(st))
+  local counter = self:newTemp()
+  self:createVar(st.counter, types.int, counter)
+  shared.fw("  %s = alloca %s\n", counter, maptype[types.int])
+  local start = isEmpty(st.optStart) and "0" or self:codeExp(st.optStart).result
+  shared.fw("  store %s %s, %s* %s\n", maptype[types.int], start, maptype[types.int], counter)
+  local stop = self:codeExp(st.stop).result
+  local step = isEmpty(st.optStep) and "1" or self:codeExp(st.optStep).result
+  local Lcond = self:newLabel()
+  local Lbody = self:newLabel()
+  local Lend = self:newLabel()
+  self:codeJmp(Lcond)
+  self:codeLabel(Lcond)
+  self:codeCondFor(counter, stop, Lbody, Lend)
+  self:codeLabel(Lbody)
+  self:codeStat(st.block)
+  self:codeIncrement(counter)
+  self:codeJmp(Lcond)
+  self:codeLabel(Lend)
+end
+
 function Compiler:codeStat_return(st)
   currentType = self.functions[self.currentFunc].type
   if isEmpty(st.e) then
@@ -439,6 +482,7 @@ function Compiler:codeStat(st)
   elseif tag == "call" then return self:codeCall(st, false)
   elseif tag == "if" then return self:codeStat_if(st)
   elseif tag == "while" then return self:codeStat_while(st)
+  elseif tag == "for" then return self:codeStat_for(st)
   elseif tag == "return" then return self:codeStat_return(st)
   elseif tag == "print" then return self:codeStat_print(st)
   elseif tag == "daVAR" then return self:codeStat_daVAR(st)
