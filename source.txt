@@ -1,6 +1,6 @@
 fun main(): int{
     for i in 0, 10, 1{
-        @ 4
+        @ i
     }
     ret 0
 }

@@ -3,8 +3,8 @@ block =   {
   body =     {
     s1 =       {
       e =         {
-        num = 4;
-        tag = 'INT';
+        id = 'i';
+        tag = 'uVAR';
         };
       tag = 'print';
       };
@@ -18,7 +18,7 @@ optStart =   {
   tag = 'INT';
   };
 optStep =   {
-  num = 1;
+  num = 20;
   tag = 'INT';
   };
 stop =   {

@@ -13,7 +13,6 @@ _main:                                  ; @main
 	.cfi_offset w29, -16
 	.cfi_offset w19, -24
 	.cfi_offset w20, -32
-	mov	w20, #4                         ; =0x4
 Lloh0:
 	adrp	x19, l_.strI@PAGE
 Lloh1:
@@ -26,11 +25,12 @@ LBB0_1:                                 ; %L1
 	b.gt	LBB0_3
 ; %bb.2:                                ; %L2
                                         ;   in Loop: Header=BB0_1 Depth=1
+	ldr	w8, [sp, #12]
 	mov	x0, x19
-	str	x20, [sp]
+	str	x8, [sp]
 	bl	_printf
 	ldr	w8, [sp, #12]
-	add	w8, w8, #1
+	add	w8, w8, #20
 	str	w8, [sp, #12]
 	b	LBB0_1
 LBB0_3:                                 ; %L3

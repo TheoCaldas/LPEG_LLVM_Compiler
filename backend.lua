@@ -144,11 +144,11 @@ function Compiler:codeCondFor(counter, stop, Ltrue, Lfalse)
   ]], t3, t2, t3, Ltrue, Lfalse)
 end
 
-function Compiler:codeIncrement(counter)
+function Compiler:codeIncrement(counter, step)
   local t0 = self:newTemp()
   local t1 = self:newTemp()
   shared.fw("  %s = load %s, %s* %s\n", t0, maptype[types.int], maptype[types.int], counter)
-  shared.fw("  %s = %s i32 %s, %s\n", t1, BAO_INT["+"], t0, "1")
+  shared.fw("  %s = %s i32 %s, %s\n", t1, BAO_INT["+"], t0, step)
   shared.fw("  store %s %s, %s* %s\n", maptype[types.int], t1, maptype[types.int], counter)
 end
 -- END: Conditional
@@ -395,7 +395,7 @@ function Compiler:codeStat_for(st)
   self:codeCondFor(counter, stop, Lbody, Lend)
   self:codeLabel(Lbody)
   self:codeStat(st.block)
-  self:codeIncrement(counter)
+  self:codeIncrement(counter, step)
   self:codeJmp(Lcond)
   self:codeLabel(Lend)
 end

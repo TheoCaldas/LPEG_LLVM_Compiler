@@ -14,10 +14,11 @@ define i32 @main() {
   %T7 = icmp ne i32 %T6, 0
   br i1 %T7, label %L2, label %L3
     L2:
-  call i32 (i8*, ...) @printf(i8* getelementptr ([4 x i8], [4 x i8]* @.strI, i64 0, i64 0), i32 4)
   %T8 = load i32, i32* %T0
-  %T9 = add i32 %T8, 1
-  store i32 %T9, i32* %T0
+  call i32 (i8*, ...) @printf(i8* getelementptr ([4 x i8], [4 x i8]* @.strI, i64 0, i64 0), i32 %T8)
+  %T9 = load i32, i32* %T0
+  %T10 = add i32 %T9, 20
+  store i32 %T10, i32* %T0
   br label %L1
   L3:
   ret i32 0
