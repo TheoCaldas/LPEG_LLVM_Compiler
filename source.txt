@@ -1,4 +1,6 @@
 fun main(): int{
-    @ 4.5 as float as int
+    for i in 0, 10, 1{
+        @ 4
+    }
     ret 0
 }

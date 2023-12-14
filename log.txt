@@ -1,1 +1,2 @@
-COMPILATION SUCCEED
+SEMANTIC ERROR
+for: statement not yet implemented

@@ -6,15 +6,15 @@ _main:                                  ; @main
 	.cfi_startproc
 ; %bb.0:
 	sub	sp, sp, #32
-	.cfi_def_cfa_offset 32
 	stp	x29, x30, [sp, #16]             ; 16-byte Folded Spill
+	.cfi_def_cfa_offset 32
 	.cfi_offset w30, -8
 	.cfi_offset w29, -16
 Lloh0:
 	adrp	x0, l_.strI@PAGE
 Lloh1:
 	add	x0, x0, l_.strI@PAGEOFF
-	mov	w8, #4
+	mov	w8, #4                          ; =0x4
 	str	x8, [sp]
 	bl	_printf
 	ldp	x29, x30, [sp, #16]             ; 16-byte Folded Reload
