@@ -2,7 +2,7 @@ local lpeg = require "lpeg"
 local shared = require "shared"
 
 -- MARK: Local Vars
-local reservedWords = {"var", "ret", "fun", "if", "else", "while", "as", "for", "in"}
+local reservedWords = {"var", "ret", "fun", "if", "else", "while", "as", "for", "from", "to", "by"}
 local lastpos = 0
 
 -- MARK: Auxiliar Functions
@@ -132,7 +132,7 @@ local syntax = lpeg.P{"defs";
     (rw"if" * exp * block * (rw"else" * block)^-1 / node("if", "cond", "th", "el")) + 
     (rw"while" * exp * block / node("while", "cond", "body")) +
     (rw"ret" * opt(exp) / node("return", "e")) +
-    ( (rw"for" * id * rw"in" * opt((integer / node("INT", "num")) * CM) * (integer / node("INT", "num")) * opt(CM * (integer / node("INT", "num"))) * block) / node("for", "counter", "optStart", "stop", "optStep", "block")) + 
+    ( (rw"for" * id * opt(rw"from" * (integer / node("INT", "num"))) * rw"to" * (integer / node("INT", "num")) * opt(rw"by" * (integer / node("INT", "num"))) * block) / node("for", "counter", "optStart", "stop", "optStep", "block")) + 
     call +
     comment;
   rawType = id;

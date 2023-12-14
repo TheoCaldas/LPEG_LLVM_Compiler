@@ -379,7 +379,6 @@ function Compiler:codeStat_while(st)
 end
 
 function Compiler:codeStat_for(st)
-  shared.log:write(shared.pt(st))
   local counter = self:newTemp()
   self:createVar(st.counter, types.int, counter)
   shared.fw("  %s = alloca %s\n", counter, maptype[types.int])
