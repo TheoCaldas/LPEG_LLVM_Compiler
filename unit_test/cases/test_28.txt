@@ -1,0 +1,6 @@
+fun main(): int{
+    for i to 5{
+        @ i
+    }
+    ret 0
+}

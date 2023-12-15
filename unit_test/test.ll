@@ -3,9 +3,37 @@
 
 declare dso_local i32 @printf(i8*, ...)
 
+define double @step(i32 %T0) {
+  %T1 = alloca i32
+  store i32 %T0, i32* %T1
+  %T2 = load i32, i32* %T1
+  %T3 = sitofp i32 %T2 to double
+  %T4 = fmul double %T3, 2.400000000000000e+00
+  ret double %T4
+}
+
 define i32 @main() {
-  %T0 = fptosi double 4.500000000000000e+00 to i32
-  call i32 (i8*, ...) @printf(i8* getelementptr ([4 x i8], [4 x i8]* @.strI, i64 0, i64 0), i32 %T0)
+  %T5 = alloca double
+  %T6 = sitofp i32 3 to double
+  %T7 = fmul double %T6, 4.300000000000000e+00
+  store double %T7, double* %T5
+  %T8 = call double @step(i32 4)
+  %T9 = fadd double %T8, 4.200000000000000e+00
+  br label %L10
+  L10:
+  %T13 = load double, double* %T5
+  %T14 = fcmp ole double %T13, 8.009999999999999e+01
+  %T15 = zext i1 %T14 to i32
+  %T16 = icmp ne i32 %T15, 0
+  br i1 %T16, label %L11, label %L12
+    L11:
+  %T17 = load double, double* %T5
+  call i32 (i8*, ...) @printf(i8* getelementptr ([4 x i8], [4 x i8]* @.strD, i64 0, i64 0), double %T17)
+  %T18 = load double, double* %T5
+  %T19 = fadd double %T18, %T9
+  store double %T19, double* %T5
+  br label %L10
+  L12:
   ret i32 0
 }
 

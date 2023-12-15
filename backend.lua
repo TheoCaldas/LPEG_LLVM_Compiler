@@ -136,8 +136,8 @@ function Compiler:codeCondFor(counter, stop, Ltrue, Lfalse)
   local t1 = self:newTemp()
   local t2 = self:newTemp()
   local t3 = self:newTemp()
-  shared.fw("  %s = load %s, %s* %s\n", t0, maptype[types.int], maptype[types.int], counter)
-  shared.fw("  %s = icmp %s i32 %s, %s\n  %s = zext i1 %s to i32\n", t1, BCO_INT["<="], t0, stop, t2, t1)
+  shared.fw("  %s = load %s, %s* %s\n", t0, maptype[types.float], maptype[types.float], counter)
+  shared.fw("  %s = fcmp %s double %s, %s\n  %s = zext i1 %s to i32\n", t1, BCO_FLOAT["<="], t0, stop.result, t2, t1)
   shared.fw([[
   %s = icmp ne i32 %s, 0
   br i1 %s, label %%%s, label %%%s
@@ -147,9 +147,9 @@ end
 function Compiler:codeIncrement(counter, step)
   local t0 = self:newTemp()
   local t1 = self:newTemp()
-  shared.fw("  %s = load %s, %s* %s\n", t0, maptype[types.int], maptype[types.int], counter)
-  shared.fw("  %s = %s i32 %s, %s\n", t1, BAO_INT["+"], t0, step)
-  shared.fw("  store %s %s, %s* %s\n", maptype[types.int], t1, maptype[types.int], counter)
+  shared.fw("  %s = load %s, %s* %s\n", t0, maptype[types.float], maptype[types.float], counter)
+  shared.fw("  %s = %s double %s, %s\n", t1, BAO_FLOAT["+"], t0, step.result)
+  shared.fw("  store %s %s, %s* %s\n", maptype[types.float], t1, maptype[types.float], counter)
 end
 -- END: Conditional
 
@@ -378,14 +378,21 @@ function Compiler:codeStat_while(st)
   self:codeLabel(Lend)
 end
 
-function Compiler:codeStat_for(st)
+function Compiler:codeStat_for(st) --float
   local counter = self:newTemp()
-  self:createVar(st.counter, types.int, counter)
-  shared.fw("  %s = alloca %s\n", counter, maptype[types.int])
-  local start = isEmpty(st.optStart) and "0" or self:codeExp(st.optStart).result
-  shared.fw("  store %s %s, %s* %s\n", maptype[types.int], start, maptype[types.int], counter)
-  local stop = self:codeExp(st.stop).result
-  local step = isEmpty(st.optStep) and "1" or self:codeExp(st.optStep).result
+  self:createVar(st.counter, types.float, counter)
+  shared.fw("  %s = alloca %s\n", counter, maptype[types.float])
+
+  local start = isEmpty(st.optStart) and self:codeExp({tag = "FLOAT", num = "0.0"}) or self:codeExp(st.optStart)
+  start = self:codeToFloat(start)
+  shared.fw("  store %s %s, %s* %s\n", maptype[types.float], start.result, maptype[types.float], counter)
+
+  local stop = self:codeExp(st.stop)
+  stop = self:codeToFloat(stop)
+
+  local step = isEmpty(st.optStep) and self:codeExp({tag = "FLOAT", num = "1.0"}) or self:codeExp(st.optStep)
+  step = self:codeToFloat(step)
+
   local Lcond = self:newLabel()
   local Lbody = self:newLabel()
   local Lend = self:newLabel()
