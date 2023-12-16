@@ -546,8 +546,8 @@ function Compiler:codeStat_daVAR(st)
       errorMsg(varRawType .. " is not a type")
     elseif varRawType == types.void then
       errorMsg("Cannot alloc a void variable")
-    elseif expRawType ~= varRawType then
-      errorMsg("Cannot store " .. expRawType .. " value in a " .. varRawType .. " variable")
+    elseif not self:typeIsEqual(c.type, st.optType) then
+      errorMsg("Cannot store " .. self:strType(c.type) .. " value in a " .. self:strType(st.optType) .. " variable")
     end
     local map = maptype[varRawType]
     shared.fw("  %s = alloca %s\n  store %s %s, %s %s\n",

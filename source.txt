@@ -1,4 +1,5 @@
 fun main(): int{
     var x: [int] = new [int] (4)
+    
     ret 0
 }
