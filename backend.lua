@@ -159,7 +159,7 @@ function Compiler:codeIncrement(counter, step)
   local t1 = self:newTemp()
   shared.fw("  %s = load %s, %s* %s\n", t0, maptype[types.float], maptype[types.float], counter)
   shared.fw("  %s = %s double %s, %s\n", t1, BAO_FLOAT["+"], t0, step.result)
-  shared.fw("  store %s %s, %s* %s\n", maptype[types.float], t1, maptype[types.float], counter)
+  shared.fw("  store %s %s, ptr %s\n", maptype[types.float], t1, counter)
 end
 -- END: Conditional
 
@@ -214,27 +214,29 @@ end
 
 -- START: Type Cast
 function Compiler:codeToInt(coded)
-  if coded.type == types.int then
+  local rawType = self:getRawType(coded.type)
+  if rawType == types.int then
     return coded
   end
   local temp = self:newTemp()
-  if coded.type == types.float then
+  if rawType == types.float then
     shared.fw("  %s = fptosi double %s to i32\n", temp, coded.result)
   else
-    errorMsg("Cannot cast from " .. coded.type .. " to int")
+    errorMsg("Cannot cast from " .. rawType .. " to int")
   end
   return self:result_type(temp, types.int)
 end
 
 function Compiler:codeToFloat(coded)
-  if coded.type == types.float then
+  local rawType = self:getRawType(coded.type)
+  if rawType == types.float then
     return coded
   end
   local temp = self:newTemp()
-  if coded.type == types.int then
+  if rawType == types.int then
     shared.fw("  %s = sitofp i32 %s to double\n", temp, coded.result)
   else
-    errorMsg("Cannot cast from " .. coded.type .. " to float")
+    errorMsg("Cannot cast from " .. rawType .. " to float")
   end
   return self:result_type(temp, types.float)
 end
@@ -252,14 +254,12 @@ function Compiler:typeExists(type)
 end
 
 function Compiler:typeIsEqual(typeA, typeB)
-  if typeA.tag ~= typeB.tag then return end
-
+  if typeA.tag ~= typeB.tag then return false end
   if typeA.tag == "primitiveType" then
     return typeA.type == typeB.type
   elseif typeA.tag == "arrayType" then
     return self:typeIsEqual(typeA.nestedType, typeB.nestedType)
   end
-
   return false
 end
 
@@ -279,7 +279,7 @@ function Compiler:strType(type)
   elseif type.tag == "arrayType" then
     return string.format("[%s]", self:strType(type.nestedType))
   else
-    return "UNKNOW"
+    return type
   end
 end
 
@@ -310,11 +310,11 @@ end
 
 -- START: Expression
 function Compiler:codeExp_INT(exp)
-  return self:result_type(string.format("%d", exp.num), types.int)
+  return self:result_type(string.format("%d", exp.num), {tag = "primitiveType", type = types.int})
 end
 
 function Compiler:codeExp_FLOAT(exp)
-  return self:result_type(string.format("%.15e", exp.num), types.float)
+  return self:result_type(string.format("%.15e", exp.num), {tag = "primitiveType", type = types.float})
 end
 
 function Compiler:codeExp_uVAR (exp)
@@ -478,7 +478,7 @@ function Compiler:codeStat_for(st) --float
 
   local start = isEmpty(st.optStart) and self:codeExp({tag = "FLOAT", num = "0.0"}) or self:codeExp(st.optStart)
   start = self:codeToFloat(start)
-  shared.fw("  store %s %s, %s* %s\n", maptype[types.float], start.result, maptype[types.float], counter)
+  shared.fw("  store %s %s, ptr %s\n", maptype[types.float], start.result, counter)
 
   local stop = self:codeExp(st.stop)
   stop = self:codeToFloat(stop)
@@ -537,8 +537,8 @@ function Compiler:codeStat_daVAR(st)
   local expRawType = self:getRawType(c.type)
   if isEmpty(st.optType) then
     -- implicit type
-    shared.fw("  %s = alloca %s\n  store %s %s, %s %s\n",
-    temp, maptype[expRawType], maptype[expRawType], c.result, maptype[expRawType], temp)
+    shared.fw("  %s = alloca %s\n  store %s %s, ptr %s\n",
+    temp, maptype[expRawType], maptype[expRawType], c.result, temp)
   else
     -- explicit type
     local varRawType = self:getRawType(st.optType)
@@ -550,8 +550,8 @@ function Compiler:codeStat_daVAR(st)
       errorMsg("Cannot store " .. self:strType(c.type) .. " value in a " .. self:strType(st.optType) .. " variable")
     end
     local map = maptype[varRawType]
-    shared.fw("  %s = alloca %s\n  store %s %s, %s %s\n",
-    temp, map, map, c.result, map, temp)
+    shared.fw("  %s = alloca %s\n  store %s %s, ptr %s\n",
+    temp, map, map, c.result, temp)
   end
 end
 
@@ -561,7 +561,7 @@ function Compiler:codeStat_aVAR(st)
   if c.type ~= varType then
     errorMsg("Cannot store " .. c.type .. " value in a " .. varType .. " variable")
   end
-  shared.fw("  store %s %s, %s* %s\n", maptype[c.type], c.result, maptype[c.type], varRef)
+  shared.fw("  store %s %s, ptr %s\n", maptype[c.type], c.result, varRef)
 end
 
 function Compiler:codeStat_dVAR(st)
@@ -623,8 +623,8 @@ function Compiler:codeParam (func)
     local paramMap = params[i].typemap
     local varTemp = self:newTemp()
     self:createVar(paramID, paramType, varTemp)
-    shared.fw("  %s = alloca %s\n  store %s %s, %s* %s\n",
-     varTemp, paramMap, paramMap, paramTemp, paramMap, varTemp)
+    shared.fw("  %s = alloca %s\n  store %s %s, ptr %s\n",
+     varTemp, paramMap, paramMap, paramTemp, varTemp)
     table.insert(self.functions[func.name].params, paramType)
   end
 end

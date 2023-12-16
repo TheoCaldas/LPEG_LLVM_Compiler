@@ -1,5 +1,8 @@
 fun main(): int{
-    var x: [int] = new [int] (4)
-    
+    var a: [int] = new [int] (4)
+    var b = new [int] (4)
+    var c: int = 4
+    var d = 3 * 2
+    @ d
     ret 0
 }
