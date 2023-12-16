@@ -3,6 +3,11 @@ fun main(): int{
     var b = new [int] (4)
     var c: int = 4
     var d = 3 * 2
-    @ d
+    @ d + c
+
+    var e: float = 3.452
+    var f = 1.23
+
+    @ e + f
     ret 0
 }

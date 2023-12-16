@@ -23,11 +23,14 @@ define i32 @main() {
   %T11 = fmul double %T9, %T10
   %T12 = alloca double
   store double %T11, ptr %T12
-  %T13 = load double, double* %T12
-  %T14 = load nil, nil* %T8
+  %T13 = load double, ptr %T12
+  %T14 = load i32, ptr %T8
   %T15 = sitofp i32 %T14 to double
   %T16 = fadd double %T13, %T15
   call i32 (i8*, ...) @printf(i8* getelementptr ([4 x i8], [4 x i8]* @.strD, i64 0, i64 0), double %T16)
-  ret i32 0
-}
-
+  %T17 = alloca double
+  store double 3.452000000000000e+00, ptr %T17
+  %T18 = alloca double
+  store double 1.230000000000000e+00, ptr %T18
+  %T19 = load double, ptr %T17
+  %T20 = load double, ptr %T18

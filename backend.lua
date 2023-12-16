@@ -146,7 +146,7 @@ function Compiler:codeCondFor(counter, stop, Ltrue, Lfalse)
   local t1 = self:newTemp()
   local t2 = self:newTemp()
   local t3 = self:newTemp()
-  shared.fw("  %s = load %s, %s* %s\n", t0, maptype[types.float], maptype[types.float], counter)
+  shared.fw("  %s = load %s, ptr %s\n", t0, maptype[types.float], counter)
   shared.fw("  %s = fcmp %s double %s, %s\n  %s = zext i1 %s to i32\n", t1, BCO_FLOAT["<="], t0, stop.result, t2, t1)
   shared.fw([[
   %s = icmp ne i32 %s, 0
@@ -157,7 +157,7 @@ end
 function Compiler:codeIncrement(counter, step)
   local t0 = self:newTemp()
   local t1 = self:newTemp()
-  shared.fw("  %s = load %s, %s* %s\n", t0, maptype[types.float], maptype[types.float], counter)
+  shared.fw("  %s = load %s, ptr %s\n", t0, maptype[types.float], counter)
   shared.fw("  %s = %s double %s, %s\n", t1, BAO_FLOAT["+"], t0, step.result)
   shared.fw("  store %s %s, ptr %s\n", maptype[types.float], t1, counter)
 end
@@ -320,7 +320,8 @@ end
 function Compiler:codeExp_uVAR (exp)
   local varRef, varType = self:findVar(exp.id)	  
   local temp = self:newTemp()
-  shared.fw("  %s = load %s, %s* %s\n", temp, maptype[varType], maptype[varType], varRef)
+  local rawType = self:getRawType(varType)
+  shared.fw("  %s = load %s, ptr %s\n", temp, maptype[rawType], varRef)
   return self:result_type(temp, varType)
 end
 
