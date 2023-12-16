@@ -1,11 +1,4 @@
-fun step(x: int): float{
-    ret x * 2.4
-}
-
 fun main(): int{
-    for i from 3 * 4.3 to 80.1 by step(4) + 4.2{
-        @ i 
-    }
-    
+    var x: [int] = new [int] (4)
     ret 0
 }

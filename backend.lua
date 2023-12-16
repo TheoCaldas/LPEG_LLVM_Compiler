@@ -5,6 +5,7 @@ local types = {
   void = "void",
   int = "int",
   float = "float",
+  array = "array"
 }
 
 -- type to LLVM
@@ -12,6 +13,13 @@ local maptype = {
   [types.void] = "void",
   [types.int] = "i32",
   [types.float] = "double",
+  [types.array] = "ptr"
+}
+
+local typeSize = {
+  [types.int] = 4,
+  [types.float] = 8,
+  [types.array] = 8
 }
 
 -- operators to LLVM
@@ -67,6 +75,8 @@ local premable = [[
 @.strD = private unnamed_addr constant [4 x i8] c"%g\0A\00"
 
 declare dso_local i32 @printf(i8*, ...)
+
+declare ptr @malloc(i64)
 
 ]]
 
@@ -230,6 +240,74 @@ function Compiler:codeToFloat(coded)
 end
 -- END: Type Cast
 
+-- START: Nested Type
+function Compiler:typeExists(type)
+  if type.tag == "primitiveType" then
+    return types[type.type] ~= nil
+  elseif type.tag == "arrayType" then
+    return self:typeExists(type.nestedType)
+  else
+    return false
+  end
+end
+
+function Compiler:typeIsEqual(typeA, typeB)
+  if typeA.tag ~= typeB.tag then return end
+
+  if typeA.tag == "primitiveType" then
+    return typeA.type == typeB.type
+  elseif typeA.tag == "arrayType" then
+    return self:typeIsEqual(typeA.nestedType, typeB.nestedType)
+  end
+
+  return false
+end
+
+function Compiler:getRawType(type)
+  if type.tag == "primitiveType" then
+    return type.type
+  elseif type.tag == "arrayType" then
+    return types.array
+  else
+    return type
+  end
+end
+
+function Compiler:strType(type)
+  if type.tag == "primitiveType" then
+    return type.type
+  elseif type.tag == "arrayType" then
+    return string.format("[%s]", self:strType(type.nestedType))
+  else
+    return "UNKNOW"
+  end
+end
+
+function Compiler:codeMalloc(reg, type, arraySize)
+  local typeSizeInBytes = 0
+
+  if type.tag == "arrayType" then
+    typeSizeInBytes = typeSize[types.array]
+  elseif type.tag == "primitiveType" then
+    typeSizeInBytes = typeSize[type.type]
+  else
+    errorMsg("Type '%s' not yet implemented", self:strType(type))
+  end
+
+  local mallocSize = self:newTemp()
+  shared.fw("  %s = mul i32 %s, %s\n", mallocSize, typeSizeInBytes, arraySize)
+  local i64MallocSize = self:newTemp()
+  shared.fw("  %s = sext i32 %s to i64\n", i64MallocSize, mallocSize)
+  shared.fw("  %s = call ptr @malloc(i64 %s)\n", reg, i64MallocSize)
+end
+
+function Compiler:codeGetElementPtr(res, type, var, index)
+  local i64Index = self:newTemp()
+  shared.fw("  %s = sext i32 %s to i64\n", i64Index, index)
+  shared.fw("  %s = getelementptr inbounds %s, ptr %s, i64 %s\n", res, type, var, i64Index)
+end
+-- END: Nested Type
+
 -- START: Expression
 function Compiler:codeExp_INT(exp)
   return self:result_type(string.format("%d", exp.num), types.int)
@@ -319,6 +397,20 @@ function Compiler:codeExp_cast(exp)
   end
 end
 
+function Compiler:codeExp_new(exp)
+  -- shared.log:write(shared.pt(exp))
+  local size = self:codeExp(exp.size)
+  local expType = exp.type
+
+  if expType.tag ~= "arrayType" then
+    errorMsg("invalid type for new, expected array type, but received '%s'", self:strType(exp.type))
+  end
+
+  local res = self:newTemp()
+  self:codeMalloc(res, expType.nestedType, size.result)
+  return self:result_type(res, exp.type)
+end
+
 function Compiler:codeExp (exp)
   local tag = exp.tag
   if tag == "INT" then return self:codeExp_INT(exp)
@@ -329,6 +421,7 @@ function Compiler:codeExp (exp)
   elseif tag == "BCO" then return self:codeExp_BCO(exp)
   elseif tag == "call" then return self:codeCall(exp, true)
   elseif tag == "cast" then return self:codeExp_cast(exp)
+  elseif tag == "new" then return self:codeExp_new(exp)
   else errorMsg(tag .. ": expression not yet implemented")
   end
 end
@@ -407,18 +500,21 @@ function Compiler:codeStat_for(st) --float
 end
 
 function Compiler:codeStat_return(st)
-  currentType = self.functions[self.currentFunc].type
+  local currentType = self.functions[self.currentFunc].type
+  local rawCurrentType = self:getRawType(currentType)
+  
   if isEmpty(st.e) then
-    if currentType ~= types.void then
-      errorMsg(currentType .. " return expected")
+    if rawCurrentType ~= types.void then
+      errorMsg(rawCurrentType .. " return expected")
     end
     io.write("  ret void\n")
   else
     local c = self:codeExp(st.e)
-    if currentType ~= c.type then
-      errorMsg(currentType .. " return expected")
+    local rawExpType = self:getRawType(c.type)
+    if rawCurrentType ~= rawExpType then
+      errorMsg(rawCurrentType .. " return expected")
     end
-    shared.fw("  ret %s %s\n", maptype[c.type], c.result)
+    shared.fw("  ret %s %s\n", maptype[rawExpType], c.result)
   end
 end
 
@@ -438,22 +534,23 @@ function Compiler:codeStat_daVAR(st)
   local c = self:codeExp(st.e)
   local temp = self:newTemp()
   self:createVar(st.id, c.type, temp)
-
+  local expRawType = self:getRawType(c.type)
   if isEmpty(st.optType) then
     -- implicit type
-    shared.fw("  %s = alloca %s\n  store %s %s, %s* %s\n",
-    temp, maptype[c.type], maptype[c.type], c.result, maptype[c.type], temp)
+    shared.fw("  %s = alloca %s\n  store %s %s, %s %s\n",
+    temp, maptype[expRawType], maptype[expRawType], c.result, maptype[expRawType], temp)
   else
     -- explicit type
-    if notType(st.optType) then
-      errorMsg(st.optType .. " is not a type")
-    elseif st.optType == types.void then
+    local varRawType = self:getRawType(st.optType)
+    if notType(varRawType) then
+      errorMsg(varRawType .. " is not a type")
+    elseif varRawType == types.void then
       errorMsg("Cannot alloc a void variable")
-    elseif c.type ~= st.optType then
-      errorMsg("Cannot store " .. c.type .. " value in a " .. st.optType .. " variable")
+    elseif expRawType ~= varRawType then
+      errorMsg("Cannot store " .. expRawType .. " value in a " .. varRawType .. " variable")
     end
-    local map = maptype[st.optType]
-    shared.fw("  %s = alloca %s\n  store %s %s, %s* %s\n",
+    local map = maptype[varRawType]
+    shared.fw("  %s = alloca %s\n  store %s %s, %s %s\n",
     temp, map, map, c.result, map, temp)
   end
 end
@@ -533,14 +630,20 @@ function Compiler:codeParam (func)
 end
 
 function Compiler:codeFunc (func)
-  local fType = isEmpty(func.optType) and types.void or func.optType
+  local fType = isEmpty(func.optType) and 
+  { tag = 'primitiveType',
+    type = 'void' } 
+  or func.optType
   self.functions[func.name] = {type = fType, params = {}}
   self.currentFunc = func.name
 
-  if notType(fType) then
-    errorMsg(fType .. " type does not exist")
-  end
-  shared.fw("define %s @%s(", maptype[fType], func.name)
+  -- shared.log:write(shared.pt(fType))
+  -- if notType(fType) then
+  --   errorMsg(fType .. " type does not exist")
+  -- end
+
+  local rawType = self:getRawType(fType)
+  shared.fw("define %s @%s(", maptype[rawType], func.name)
   self:codeParam(func)
   self:codeStat(func.body)
   if fType == types.void then

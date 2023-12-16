@@ -2,7 +2,7 @@ local lpeg = require "lpeg"
 local shared = require "shared"
 
 -- MARK: Local Vars
-local reservedWords = {"var", "ret", "fun", "if", "else", "while", "as", "for", "from", "to", "by"}
+local reservedWords = {"var", "ret", "fun", "if", "else", "while", "as", "for", "from", "to", "by", "new"}
 local lastpos = 0
 
 -- MARK: Auxiliar Functions
@@ -71,6 +71,8 @@ local OP = "(" * S
 local CP = ")" * S
 local OB = "{" * S
 local CB = "}" * S
+local OSB = "[" * S
+local CSB = "]" * S
 local SC = ";" * S
 local CL = ":" * S
 local CM = "," * S
@@ -113,7 +115,9 @@ local call = lpeg.V"call"
 local def = lpeg.V"def"
 local rawType = lpeg.V"rawType"
 local typed = lpeg.V"typed"
+local arrayType = lpeg.V"arrayType"
 local typedVar = lpeg.V"typedVar"
+local newArray = lpeg.V"newArray"
 local postfix = lpeg.V"postfix"
 local casted = lpeg.V"casted"
 local comment = lpeg.V"comment"
@@ -136,11 +140,16 @@ local syntax = lpeg.P{"defs";
     call +
     comment;
   rawType = id;
-  typed = CL * rawType;
+  arrayType = 
+    (OSB * arrayType * CSB) / node("arrayType", "nestedType") + 
+    rawType / node("primitiveType", "type");
+  typed = CL * arrayType;
+  newArray = rw"new" * arrayType * OP * exp * CP / node("new", "type", "size");
   typedVar = lpeg.Cmt(id, notRW) * typed / node("typedVAR", "id", "type");
   comment = HT * lpeg.C((1 - HT)^0) * HT * S / node("comment", "body");
   call = id * OP * opt(lpeg.Ct(exp * (CM * exp)^0)) * CP / node("call", "name", "optArgs");
   primary = 
+    newArray + 
     (float / node("FLOAT", "num")) +
     (integer / node("INT", "num")) + 
     id / node("uVAR", "id") +
