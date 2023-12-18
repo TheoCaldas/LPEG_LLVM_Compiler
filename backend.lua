@@ -228,7 +228,7 @@ function Compiler:codeToInt(coded)
   else
     errorMsg("Cannot cast from " .. rawType .. " to int")
   end
-  return self:result_type(temp, types.int)
+  return self:result_type(temp, {tag = "primitiveType", type = types.int})
 end
 
 function Compiler:codeToFloat(coded)
@@ -242,7 +242,7 @@ function Compiler:codeToFloat(coded)
   else
     errorMsg("Cannot cast from " .. rawType .. " to float")
   end
-  return self:result_type(temp, types.float)
+  return self:result_type(temp, {tag = "primitiveType", type = types.float})
 end
 -- END: Type Cast
 
@@ -354,6 +354,8 @@ function Compiler:codeExp_BAO (exp)
     coded1 = self:codeToFloat(coded1)
     coded2 = self:codeToFloat(coded2)
   end
+  rawType1 = self:getRawType(coded1.type)
+  rawType2 = self:getRawType(coded2.type)
 
   local temp = self:newTemp()
   if rawType1 == types.int then
