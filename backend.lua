@@ -132,7 +132,8 @@ end
 function Compiler:codeCond (exp, Ltrue, Lfalse)
   local c = self:codeExp(exp)
   local aux = self:newTemp()
-  if c.type ~= types.int then
+  local rawType = self:getRawType(c.type)
+  if rawType ~= types.int then
     errorMsg("Not a comparison")
   end
   shared.fw([[
@@ -169,7 +170,8 @@ function Compiler:codeArgs (args, params)
   typeResult = {}
   for i = 1, #args do
     local c = self:codeExp(args[i])
-    if params[i] ~= c.type then -- arg type not param type
+    local rawType = self:getRawType(c.type)
+    if params[i] ~= rawType then -- arg type not param type
       errorMsg(params[i] .. " argument expected")
     end
     table.insert(typeResult, self:result_type(c.result, maptype[params[i]]))
@@ -182,7 +184,8 @@ function Compiler:codeCall(call, asExp)
     errorMsg("unknown function " .. call.name)
   end
   local func = self.functions[call.name]
-  if func.type == types.void and asExp then -- void function as exp
+  local fRawType = self:getRawType(func.type)
+  if fRawType == types.void and asExp then -- void function as exp
     errorMsg(call.name .. " is a void function")
   end
   local args = call.optArgs
@@ -197,16 +200,17 @@ function Compiler:codeCall(call, asExp)
     local codedArgs = self:codeArgs(args, func.params)
     for i = 1, #codedArgs do
       local separator = (i > 1 and ", " or "")
-      sArgs = sArgs .. (separator .. codedArgs[i].type .. " " .. codedArgs[i].result)
+      local rawType = self:getRawType(codedArgs[i].type)
+      sArgs = sArgs .. (separator .. rawType .. " " .. codedArgs[i].result)
     end
   end
   sArgs = sArgs .. ")\n"
   local temp = self:newTemp()
   -- write call
-  if not asExp and func.type == types.void then -- if statement and void
-    shared.fw("  call %s @%s(%s", maptype[func.type], call.name, sArgs)
+  if not asExp and ffRawType == types.void then -- if statement and void
+    shared.fw("  call %s @%s(%s", maptype[fRawType], call.name, sArgs)
   else
-    shared.fw("  %s = call %s @%s(%s", temp, maptype[func.type], call.name, sArgs)
+    shared.fw("  %s = call %s @%s(%s", temp, maptype[fRawType], call.name, sArgs)
   end
   return self:result_type(temp, func.type)
 end
@@ -328,12 +332,14 @@ end
 function Compiler:codeExp_UAO (exp)
   local coded = self:codeExp(exp.e)
   local temp = self:newTemp()
-  if coded.type == types.int then 
-    shared.fw("  %s = sub %s 0, %s\n", temp, maptype[coded.type], coded.result)
-  elseif coded.type == types.float then 
-    shared.fw("  %s = fneg %s %s\n", temp, maptype[coded.type], coded.result)
+  local rawType = self:getRawType(coded.type)
+
+  if rawType == types.int then 
+    shared.fw("  %s = sub %s 0, %s\n", temp, maptype[rawType], coded.result)
+  elseif rawType == types.float then 
+    shared.fw("  %s = fneg %s %s\n", temp, maptype[rawType], coded.result)
   else
-    errorMsg("Unary operation not defined for " .. coded.type)
+    errorMsg("Unary operation not defined for " .. rawType)
   end
   return self:result_type(temp, coded.type)
 end
@@ -342,18 +348,20 @@ function Compiler:codeExp_BAO (exp)
   local coded1 = self:codeExp(exp.e1)
   local coded2 = self:codeExp(exp.e2)
 
-  if coded1.type ~= coded2.type then -- implicit cast to float
+  local rawType1 = self:getRawType(coded1.type)
+  local rawType2 = self:getRawType(coded2.type)
+  if rawType1 ~= rawType2 then -- implicit cast to float
     coded1 = self:codeToFloat(coded1)
     coded2 = self:codeToFloat(coded2)
   end
 
   local temp = self:newTemp()
-  if coded1.type == types.int then
+  if rawType1 == types.int then
     shared.fw("  %s = %s i32 %s, %s\n", temp, BAO_INT[exp.op], coded1.result, coded2.result)
-  elseif coded1.type == types.float then
+  elseif rawType1 == types.float then
     shared.fw("  %s = %s double %s, %s\n", temp, BAO_FLOAT[exp.op], coded1.result, coded2.result)
   else
-    errorMsg("Binary operation not defined for " .. coded.type)
+    errorMsg("Binary operation not defined for " .. rawType1)
   end
   return self:result_type(temp, coded1.type)
 end
@@ -364,14 +372,16 @@ function Compiler:codeExp_BCO (exp)
   local t1 = self:newTemp()
   local t2 = self:newTemp()
 
-  if c1.type ~= c2.type then
-    errorMsg(c1.type .. " " .. exp.op .. " " .. c2.type .. " is not defined")
-  elseif c1.type == types.int then
+  local rawType1 = self:getRawType(c1.type)
+  local rawType2 = self:getRawType(c2.type)
+  if rawType1 ~= rawType2 then
+    errorMsg(rawType1 .. " " .. exp.op .. " " .. rawType2 .. " is not defined")
+  elseif rawType1 == types.int then
     shared.fw("  %s = icmp %s i32 %s, %s\n  %s = zext i1 %s to i32\n", t1, BCO_INT[exp.op], c1.result, c2.result, t2, t1)
-  elseif c1.type == types.float then
+  elseif rawType1 == types.float then
     shared.fw("  %s = fcmp %s double %s, %s\n  %s = zext i1 %s to i32\n", t1, BCO_FLOAT[exp.op], c1.result, c2.result, t2, t1)
   else
-    errorMsg("Comparative operation not defined for " .. coded.type)
+    errorMsg("Comparative operation not defined for " .. rawType1)
   end
   return self:result_type(t2, types.int)
 end
@@ -381,17 +391,20 @@ function Compiler:codeExp_cast(exp)
   local prevType = c.type
   local destType = exp.type
 
-  if notType(destType) then
-    errorMsg(destType .. " is not a type")
-  elseif destType == types.void then
+  local prevRawType = self:getRawType(prevType)
+  local destRawType = self:getRawType(destType)
+
+  if notType(destRawType) then
+    errorMsg(destRawType .. " is not a type")
+  elseif destRawType == types.void then
     errorMsg("Cannot cast into void")
   end
   -- destType is valid
-  if destType == prevType then
+  if prevRawType == destRawType then
     return c
-  elseif prevType == types.int and destType == types.float then
+  elseif prevRawType == types.int and destRawType == types.float then
     return self:codeToFloat(c)
-  elseif prevType == types.float and destType == types.int then
+  elseif prevRawType == types.float and destRawType == types.int then
     return self:codeToInt(c)
   else
     errorMsg("Cast not defined from " .. prevType .. " to " .. destType)
@@ -522,12 +535,13 @@ end
 function Compiler:codeStat_print(st)
   local coded = self:codeExp(st.e)
   local common = "  call i32 (i8*, ...) @printf(i8* getelementptr ([4 x i8], [4 x i8]* %s, i64 0, i64 0), %s %s)\n"
-  if coded.type == types.int then
-    shared.fw(common, "@.strI", maptype[coded.type], coded.result)
-  elseif coded.type == types.float then
-    shared.fw(common, "@.strD", maptype[coded.type], coded.result)
+  local rawType = self:getRawType(coded.type)
+  if rawType == types.int then
+    shared.fw(common, "@.strI", maptype[rawType], coded.result)
+  elseif rawType == types.float then
+    shared.fw(common, "@.strD", maptype[rawType], coded.result)
   else
-    errorMsg("cannot print " .. coded.type)
+    errorMsg("cannot print " .. rawType)
   end
 end
 
@@ -559,22 +573,25 @@ end
 function Compiler:codeStat_aVAR(st)
   local c = self:codeExp(st.e)
   local varRef, varType = self:findVar(st.id)
-  if c.type ~= varType then
-    errorMsg("Cannot store " .. c.type .. " value in a " .. varType .. " variable")
+  local rawType = self:getRawType(varType)
+  local cRawType = self:getRawType(c.type)
+  if cRawType ~= rawType then
+    errorMsg("Cannot store " .. cRawType .. " value in a " .. rawType .. " variable")
   end
-  shared.fw("  store %s %s, ptr %s\n", maptype[c.type], c.result, varRef)
+  shared.fw("  store %s %s, ptr %s\n", maptype[rawType], c.result, varRef)
 end
 
 function Compiler:codeStat_dVAR(st)
   local temp = self:newTemp()
   local var = st.var
   self:createVar(var.id, var.type, temp)
-  if notType(var.type) then
-    errorMsg(var.type .. " is not a type")
-  elseif var.type == types.void then
+  local rawType = self:getRawType(var.type)
+  if notType(rawType) then
+    errorMsg(rawType .. " is not a type")
+  elseif rawType == types.void then
     errorMsg("Cannot alloc a void variable")
   end
-  shared.fw("  %s = alloca %s\n", temp, maptype[var.type])
+  shared.fw("  %s = alloca %s\n", temp, maptype[rawType])
 end
 
 function Compiler:codeStat(st)
@@ -608,10 +625,11 @@ function Compiler:codeParam (func)
   for i = 1, #params do
     local temp = Compiler:newTemp()
     local paramType = params[i].type
-    if notType(paramType) then
-      errorMsg(paramType .. " type does not exist")
+    local rawParamType = self:getRawType(paramType)
+    if notType(rawParamType) then
+      errorMsg(rawParamType .. " type does not exist")
     end
-    local map = maptype[paramType]
+    local map = maptype[rawParamType]
     shared.fw((i > 1 and ", " or "") .. "%s %s", map, temp)
     params[i].temp = temp
     params[i].typemap = map
@@ -639,15 +657,14 @@ function Compiler:codeFunc (func)
   self.currentFunc = func.name
 
   -- shared.log:write(shared.pt(fType))
-  -- if notType(fType) then
-  --   errorMsg(fType .. " type does not exist")
-  -- end
-
   local rawType = self:getRawType(fType)
+  if notType(rawType) then
+    errorMsg(rawType .. " type does not exist")
+  end
   shared.fw("define %s @%s(", maptype[rawType], func.name)
   self:codeParam(func)
   self:codeStat(func.body)
-  if fType == types.void then
+  if rawType == types.void then
     io.write("  ret void\n")
   end
   io.write("}\n\n")
