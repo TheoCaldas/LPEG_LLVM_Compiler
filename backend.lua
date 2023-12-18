@@ -171,10 +171,11 @@ function Compiler:codeArgs (args, params)
   for i = 1, #args do
     local c = self:codeExp(args[i])
     local rawType = self:getRawType(c.type)
-    if params[i] ~= rawType then -- arg type not param type
-      errorMsg(params[i] .. " argument expected")
+    local rawParamType = self:getRawType(params[i])
+    if rawParamType ~= rawType then -- arg type not param type
+      errorMsg(rawParamType .. " argument expected")
     end
-    table.insert(typeResult, self:result_type(c.result, maptype[params[i]]))
+    table.insert(typeResult, self:result_type(c.result, maptype[rawParamType]))
   end
   return typeResult
 end
@@ -200,14 +201,13 @@ function Compiler:codeCall(call, asExp)
     local codedArgs = self:codeArgs(args, func.params)
     for i = 1, #codedArgs do
       local separator = (i > 1 and ", " or "")
-      local rawType = self:getRawType(codedArgs[i].type)
-      sArgs = sArgs .. (separator .. rawType .. " " .. codedArgs[i].result)
+      sArgs = sArgs .. (separator .. codedArgs[i].type .. " " .. codedArgs[i].result)
     end
   end
   sArgs = sArgs .. ")\n"
   local temp = self:newTemp()
   -- write call
-  if not asExp and ffRawType == types.void then -- if statement and void
+  if not asExp and fRawType == types.void then -- if statement and void
     shared.fw("  call %s @%s(%s", maptype[fRawType], call.name, sArgs)
   else
     shared.fw("  %s = call %s @%s(%s", temp, maptype[fRawType], call.name, sArgs)
