@@ -165,7 +165,7 @@ local syntax = lpeg.P{"defs";
   typed = CL * arrayType;
   newArray = rw"new" * arrayType * OP * exp * CP / node("new", "type", "size");
   typedVar = lpeg.Cmt(id, notRW) * typed / node("typedVAR", "id", "type");
-  indexedVar = lpeg.Ct((id / node("arrayName", "id")) * (OSB * exp * CSB)^0) / foldIndexed ;
+  indexedVar = lpeg.Ct((id / node("uVAR", "id")) * (OSB * exp * CSB)^0) / foldIndexed ;
   
   -- comment
   comment = HT * lpeg.C((1 - HT)^0) * HT * S / node("comment", "body");
@@ -175,8 +175,7 @@ local syntax = lpeg.P{"defs";
     newArray + 
     (float / node("FLOAT", "num")) +
     (integer / node("INT", "num")) + 
-    indexedVar + 
-    id / node("uVAR", "id") +
+    indexedVar / varToExp + 
     (OP * exp * CP);
   postfix = call + primary;
   casted = lpeg.Ct(postfix * (rw"as" * rawType)^0) / fold("cast", "e", "type");

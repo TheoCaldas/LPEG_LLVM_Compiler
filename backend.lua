@@ -326,11 +326,8 @@ function Compiler:codeExp_FLOAT(exp)
 end
 
 function Compiler:codeExp_uVAR (exp)
-  local varRef, varType = self:findVar(exp.id)	  
-  local temp = self:newTemp()
-  local rawType = self:getRawType(varType)
-  shared.fw("  %s = load %s, ptr %s\n", temp, maptype[rawType], varRef)
-  return self:result_type(temp, varType)
+  local varRef, varType = self:findVar(exp.id)	
+  return self:result_type(varRef, varType)
 end
 
 function Compiler:codeExp_UAO (exp)
@@ -418,7 +415,6 @@ function Compiler:codeExp_cast(exp)
 end
 
 function Compiler:codeExp_new(exp)
-  -- shared.log:write(shared.pt(exp))
   local size = self:codeExp(exp.size)
   local expType = exp.type
 
@@ -430,22 +426,16 @@ function Compiler:codeExp_new(exp)
   return self:result_type(temp, exp.type)
 end
 
-function Compiler:codeExp_array(exp)
-  local varRef, varType = self:findVar(exp.id)
-  return self:result_type(varRef, varType)
-end
-
 function Compiler:codeExp_var(exp)
   local variable = self:codeExp(exp.var)
   local variableRawType = self:getRawType(variable.type)
-  
   local temp = self:newTemp()
   shared.fw("  %s = load %s, ptr %s\n", temp, maptype[variableRawType], variable.result)
   return self:result_type(temp, variable.type)
 end
 
 function Compiler:codeExp_indexed(exp)
-  -- shared.log:write(shared.pt(exp))
+  shared.log:write(shared.pt(exp))
   local array = self:codeExp(exp.e)
   local arrayRawType = self:getRawType(array.type)
   local index = self:codeExp(exp.index)
@@ -477,7 +467,7 @@ function Compiler:codeExp (exp)
   elseif tag == "cast" then return self:codeExp_cast(exp)
   elseif tag == "new" then return self:codeExp_new(exp)
   elseif tag == "indexed" then return self:codeExp_indexed(exp)
-  elseif tag == "arrayName" then return self:codeExp_array(exp)
+  -- elseif tag == "arrayName" then return self:codeExp_array(exp)
   elseif tag == "varExp" then return self:codeExp_var(exp)
   else errorMsg(tag .. ": expression not yet implemented")
   end
@@ -580,11 +570,9 @@ function Compiler:codeStat_print(st)
   local common = "  call i32 (i8*, ...) @printf(i8* getelementptr ([4 x i8], [4 x i8]* %s, i64 0, i64 0), %s %s)\n"
   local rawType = self:getRawType(coded.type)
   if rawType == types.int then
-    -- shared.fw(common, "@.strI", maptype[rawType], coded.result)
-    shared.fw(common, "@.strI", "ptr", coded.result)
+    shared.fw(common, "@.strI", maptype[rawType], coded.result)
   elseif rawType == types.float then
-    -- shared.fw(common, "@.strD", maptype[rawType], coded.result)
-    shared.fw(common, "@.strD", "ptr", coded.result)
+    shared.fw(common, "@.strD", maptype[rawType], coded.result)
   else
     errorMsg("cannot print " .. rawType)
   end

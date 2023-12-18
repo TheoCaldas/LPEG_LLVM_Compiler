@@ -1,6 +1,6 @@
 fun main(): int{
     var a: [int] = new [int] (4)
-    
-    @ a[3]
+    var x = 3
+    @ x
     ret 0
 }

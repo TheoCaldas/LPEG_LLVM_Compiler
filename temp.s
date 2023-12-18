@@ -5,23 +5,25 @@
 _main:                                  ; @main
 	.cfi_startproc
 ; %bb.0:
-	sub	sp, sp, #32
-	stp	x29, x30, [sp, #16]             ; 16-byte Folded Spill
-	.cfi_def_cfa_offset 32
+	sub	sp, sp, #48
+	stp	x29, x30, [sp, #32]             ; 16-byte Folded Spill
+	.cfi_def_cfa_offset 48
 	.cfi_offset w30, -8
 	.cfi_offset w29, -16
 	mov	w0, #16                         ; =0x10
 	bl	_malloc
-	add	x8, x0, #12
-	stp	x8, x0, [sp]
+	mov	w8, #3                          ; =0x3
+	str	x0, [sp, #24]
 Lloh0:
 	adrp	x0, l_.strI@PAGE
 Lloh1:
 	add	x0, x0, l_.strI@PAGEOFF
+	str	w8, [sp, #20]
+	str	x8, [sp]
 	bl	_printf
-	ldp	x29, x30, [sp, #16]             ; 16-byte Folded Reload
+	ldp	x29, x30, [sp, #32]             ; 16-byte Folded Reload
 	mov	w0, wzr
-	add	sp, sp, #32
+	add	sp, sp, #48
 	ret
 	.loh AdrpAdd	Lloh0, Lloh1
 	.cfi_endproc
