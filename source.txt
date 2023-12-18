@@ -1,8 +1,6 @@
 fun main(): int{
-    var f = 1.23
-    var e: float = 2.24
-    var d: int
-    d = 9
-    @ f + e + (f * 3 + 3.4) / d
+    var a: [int] = new [int] (4)
+    
+    @ a[3]
     ret 0
 }

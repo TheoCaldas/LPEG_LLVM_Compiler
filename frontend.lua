@@ -54,6 +54,20 @@ local function updateLastPos(_,p)
   return true 
 end
 
+local function varToExp(var)
+  return {tag = "varExp", var = var}
+end
+
+local function foldIndexed(t)
+  local res = t[1]
+  for i = 2, #t, 1 do
+      res = {tag = "indexed", e = varToExp(res), index = t[i]}
+  end
+
+  return res
+end
+
+
 local function syntaxError(input)
   shared.log:write("SYNTAX ERROR NEAR\n<<" ..
     string.sub(input, lastpos - 10, lastpos - 1) .. "|" ..
@@ -118,13 +132,16 @@ local typed = lpeg.V"typed"
 local arrayType = lpeg.V"arrayType"
 local typedVar = lpeg.V"typedVar"
 local newArray = lpeg.V"newArray"
+local indexedVar = lpeg.V"indexedVar"
 local postfix = lpeg.V"postfix"
 local casted = lpeg.V"casted"
 local comment = lpeg.V"comment"
 
 local syntax = lpeg.P{"defs";
+  -- function, blocks, call, statement
   defs = lpeg.Ct(def^1);
   def = rw"fun" * id * OP * opt(lpeg.Ct(typedVar * (CM * typedVar)^0)) * CP * opt(typed) * block / node("func", "name", "optParams", "optType", "body");
+  call = id * OP * opt(lpeg.Ct(exp * (CM * exp)^0)) * CP / node("call", "name", "optArgs");
   block = OB * prog * CB / node("block", "body");
   prog = stat * SC^-1 * prog^-1 * SC^-1 / node("seq", "s1", "s2");
   stat = 
@@ -139,6 +156,8 @@ local syntax = lpeg.P{"defs";
     ( (rw"for" * id * opt(rw"from" * exp) * rw"to" * exp * opt(rw"by" * exp) * block) / node("for", "counter", "optStart", "stop", "optStep", "block")) + 
     call +
     comment;
+
+  -- variable, type
   rawType = id;
   arrayType = 
     (OSB * arrayType * CSB) / node("arrayType", "nestedType") + 
@@ -146,12 +165,17 @@ local syntax = lpeg.P{"defs";
   typed = CL * arrayType;
   newArray = rw"new" * arrayType * OP * exp * CP / node("new", "type", "size");
   typedVar = lpeg.Cmt(id, notRW) * typed / node("typedVAR", "id", "type");
+  indexedVar = lpeg.Ct((id / node("arrayName", "id")) * (OSB * exp * CSB)^0) / foldIndexed ;
+  
+  -- comment
   comment = HT * lpeg.C((1 - HT)^0) * HT * S / node("comment", "body");
-  call = id * OP * opt(lpeg.Ct(exp * (CM * exp)^0)) * CP / node("call", "name", "optArgs");
+  
+  -- exp
   primary = 
     newArray + 
     (float / node("FLOAT", "num")) +
     (integer / node("INT", "num")) + 
+    indexedVar + 
     id / node("uVAR", "id") +
     (OP * exp * CP);
   postfix = call + primary;
@@ -161,6 +185,8 @@ local syntax = lpeg.P{"defs";
   expA = lpeg.Ct(expM * (opA * expM)^0) / fold("BAO", "e1", "op", "e2");
   expC = lpeg.Ct(expA * (opC * expA)^-1) / fold("BCO", "e1", "op", "e2");
   exp = expC;
+
+  -- space
   S = lpeg.S(" \n\t")^0 * lpeg.P(updateLastPos);
 }
 

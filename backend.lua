@@ -287,7 +287,7 @@ function Compiler:strType(type)
   end
 end
 
-function Compiler:codeMalloc(reg, type, arraySize)
+function Compiler:codeMalloc(type, arraySize)
   local typeSizeInBytes = 0
 
   if type.tag == "arrayType" then
@@ -299,10 +299,14 @@ function Compiler:codeMalloc(reg, type, arraySize)
   end
 
   local mallocSize = self:newTemp()
-  shared.fw("  %s = mul i32 %s, %s\n", mallocSize, typeSizeInBytes, arraySize)
   local i64MallocSize = self:newTemp()
+  local result = self:newTemp()
+
+  shared.fw("  %s = mul i32 %s, %s\n", mallocSize, typeSizeInBytes, arraySize)
   shared.fw("  %s = sext i32 %s to i64\n", i64MallocSize, mallocSize)
-  shared.fw("  %s = call ptr @malloc(i64 %s)\n", reg, i64MallocSize)
+  shared.fw("  %s = call ptr @malloc(i64 %s)\n", result, i64MallocSize)
+
+  return result
 end
 
 function Compiler:codeGetElementPtr(res, type, var, index)
@@ -422,9 +426,43 @@ function Compiler:codeExp_new(exp)
     errorMsg("invalid type for new, expected array type, but received '%s'", self:strType(exp.type))
   end
 
-  local res = self:newTemp()
-  self:codeMalloc(res, expType.nestedType, size.result)
-  return self:result_type(res, exp.type)
+  local temp = self:codeMalloc(expType.nestedType, size.result)
+  return self:result_type(temp, exp.type)
+end
+
+function Compiler:codeExp_array(exp)
+  local varRef, varType = self:findVar(exp.id)
+  return self:result_type(varRef, varType)
+end
+
+function Compiler:codeExp_var(exp)
+  local variable = self:codeExp(exp.var)
+  local variableRawType = self:getRawType(variable.type)
+  
+  local temp = self:newTemp()
+  shared.fw("  %s = load %s, ptr %s\n", temp, maptype[variableRawType], variable.result)
+  return self:result_type(temp, variable.type)
+end
+
+function Compiler:codeExp_indexed(exp)
+  -- shared.log:write(shared.pt(exp))
+  local array = self:codeExp(exp.e)
+  local arrayRawType = self:getRawType(array.type)
+  local index = self:codeExp(exp.index)
+  local indexRawType = self:getRawType(index.type)
+
+  if arrayRawType ~= types.array then
+    errorMsg("attempt to index a " .. self:strType(array.type) .. " value")
+  end
+
+  if indexRawType ~= types.int then
+    errorMsg("index must be int, but is " .. self:strType(index.type) .. " value")
+  end
+
+  local temp = self:newTemp()
+  local resType = self:getRawType(array.type.nestedType)
+  self:codeGetElementPtr(temp, maptype[resType], array.result, index.result)
+  return self:result_type(temp, array.type.nestedType)
 end
 
 function Compiler:codeExp (exp)
@@ -438,6 +476,9 @@ function Compiler:codeExp (exp)
   elseif tag == "call" then return self:codeCall(exp, true)
   elseif tag == "cast" then return self:codeExp_cast(exp)
   elseif tag == "new" then return self:codeExp_new(exp)
+  elseif tag == "indexed" then return self:codeExp_indexed(exp)
+  elseif tag == "arrayName" then return self:codeExp_array(exp)
+  elseif tag == "varExp" then return self:codeExp_var(exp)
   else errorMsg(tag .. ": expression not yet implemented")
   end
 end
@@ -539,9 +580,11 @@ function Compiler:codeStat_print(st)
   local common = "  call i32 (i8*, ...) @printf(i8* getelementptr ([4 x i8], [4 x i8]* %s, i64 0, i64 0), %s %s)\n"
   local rawType = self:getRawType(coded.type)
   if rawType == types.int then
-    shared.fw(common, "@.strI", maptype[rawType], coded.result)
+    -- shared.fw(common, "@.strI", maptype[rawType], coded.result)
+    shared.fw(common, "@.strI", "ptr", coded.result)
   elseif rawType == types.float then
-    shared.fw(common, "@.strD", maptype[rawType], coded.result)
+    -- shared.fw(common, "@.strD", maptype[rawType], coded.result)
+    shared.fw(common, "@.strD", "ptr", coded.result)
   else
     errorMsg("cannot print " .. rawType)
   end
