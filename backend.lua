@@ -435,7 +435,7 @@ function Compiler:codeExp_var(exp)
 end
 
 function Compiler:codeExp_indexed(exp)
-  shared.log:write(shared.pt(exp))
+  -- shared.log:write(shared.pt(exp))
   local array = self:codeExp(exp.e)
   local arrayRawType = self:getRawType(array.type)
   local index = self:codeExp(exp.index)
@@ -605,13 +605,13 @@ end
 
 function Compiler:codeStat_aVAR(st)
   local c = self:codeExp(st.e)
-  local varRef, varType = self:findVar(st.id)
-  local rawType = self:getRawType(varType)
-  local cRawType = self:getRawType(c.type)
-  if cRawType ~= rawType then
-    errorMsg("Cannot store " .. cRawType .. " value in a " .. rawType .. " variable")
+  local id = self:codeExp(st.id)
+  local rawType = self:getRawType(c.type)
+  local idRawType = self:getRawType(id.type)
+  if idRawType ~= rawType then
+    errorMsg("Cannot store " .. idRawType .. " value in a " .. rawType .. " variable")
   end
-  shared.fw("  store %s %s, ptr %s\n", maptype[rawType], c.result, varRef)
+  shared.fw("  store %s %s, ptr %s\n", maptype[rawType], c.result, id.result)
 end
 
 function Compiler:codeStat_dVAR(st)

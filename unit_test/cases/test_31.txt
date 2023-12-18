@@ -8,6 +8,6 @@ fun main(): int{
     var e: float = 3.452
     var f = 1.23
 
-    @ e + f #
+    @ e + f
     ret 0
 }

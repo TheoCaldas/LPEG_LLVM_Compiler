@@ -149,7 +149,7 @@ local syntax = lpeg.P{"defs";
     (AT * exp / node("print", "e")) +
     (rw"var" * lpeg.Cmt(id, notRW) * opt(typed) * EQ * exp / node("daVAR", "id", "optType", "e")) +
     (rw"var" * typedVar / node("dVAR", "var")) + 
-    (id * EQ * exp / node("aVAR", "id", "e")) +
+    (indexedVar * EQ * exp / node("aVAR", "id", "e")) +
     (rw"if" * exp * block * (rw"else" * block)^-1 / node("if", "cond", "th", "el")) + 
     (rw"while" * exp * block / node("while", "cond", "body")) +
     (rw"ret" * opt(exp) / node("return", "e")) +
