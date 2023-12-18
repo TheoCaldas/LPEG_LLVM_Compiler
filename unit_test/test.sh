@@ -34,6 +34,9 @@ results=(
   "success"
   "success"
   "success"
+  "success"
+  "success"
+  "success"
 );
 
 cd ..;

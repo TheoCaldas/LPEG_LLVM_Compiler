@@ -1,0 +1,48 @@
+fun bigger(a: [int], size: int): int {
+    var x: int = 0
+    var indiceDoMaior: int = x
+    while x < size - 1 {
+        if a[indiceDoMaior] < a[x + 1] {
+            indiceDoMaior = x + 1
+        }
+        x = x + 1
+    }
+    ret indiceDoMaior
+}
+
+fun arrayAoQuadrado(a: [int], size: int) {
+    var i: int = 0
+    while i < size {
+        a[i] = a[i] * a[i]
+        i = i + 1
+    }
+}
+
+
+fun imprimeArray(a: [int], size: int) {
+    var i: int = 0
+    while i < size {
+        @a[i]
+        i = i + 1
+    }
+}
+
+fun main(): int {
+    var a: [int]
+    a = new [int](10)
+    a[0] = 1
+    a[1] = 2
+    a[2] = 3
+    a[3] = 4
+    a[4] = 5
+    a[5] = 6
+    a[6] = 7
+    a[7] = 8
+    a[8] = 9
+    a[9] = 10
+    @a[bigger(a, 10)]
+    imprimeArray(a, 10)
+    arrayAoQuadrado(a, 10)
+    imprimeArray(a, 10)
+    ret 0
+}

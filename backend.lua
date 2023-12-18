@@ -435,7 +435,6 @@ function Compiler:codeExp_var(exp)
 end
 
 function Compiler:codeExp_indexed(exp)
-  -- shared.log:write(shared.pt(exp))
   local array = self:codeExp(exp.e)
   local arrayRawType = self:getRawType(array.type)
   local index = self:codeExp(exp.index)
@@ -446,7 +445,7 @@ function Compiler:codeExp_indexed(exp)
   end
 
   if indexRawType ~= types.int then
-    errorMsg("index must be int, but is " .. self:strType(index.type) .. " value")
+    index = self:codeToInt(index)
   end
 
   local temp = self:newTemp()
@@ -689,7 +688,6 @@ function Compiler:codeFunc (func)
   self.functions[func.name] = {type = fType, params = {}}
   self.currentFunc = func.name
 
-  -- shared.log:write(shared.pt(fType))
   local rawType = self:getRawType(fType)
   if notType(rawType) then
     errorMsg(rawType .. " type does not exist")

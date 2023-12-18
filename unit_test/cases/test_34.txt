@@ -1,0 +1,13 @@
+fun boo(a: [int]): [int]{
+    a[0] = 30
+    ret a
+}
+
+
+fun main(): int{
+    var b = new [int] (3)
+    b = boo(b)
+    @ b[0]
+
+    ret 0
+}
